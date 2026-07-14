@@ -30,8 +30,12 @@
   },
   "liveness": {
     "title": "Face Liveness Detection",
-    "start": "Start Liveness Check",
-    "guideText": "Position your face in the oval"
+    "guideText": "Position your face in the oval",
+    "creatingSession": "Preparing liveness check...",
+    "success": "Verification successful",
+    "failed": "Verification failed",
+    "confidence": "Confidence",
+    "tryAgain": "Try Again"
   },
   "compareFaces": {
     "title": "Face Comparison",

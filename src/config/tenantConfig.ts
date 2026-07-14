@@ -8,6 +8,7 @@ export interface TenantConfig {
   footerPrivacyPolicyUrl: string;
   footerWebsiteUrl: string;
   webhookUrl: string;
+  livenessConfidenceThreshold: number;
   colors: {
     primary: string;
     headerBackground: string;

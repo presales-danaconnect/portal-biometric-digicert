@@ -1,12 +1,14 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { ocrHandler } from './functions/ocr-handler/resource';
+import { livenessHandler } from './functions/liveness-handler/resource';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 const backend = defineBackend({
   auth,
   ocrHandler,
+  livenessHandler,
 });
 
 // Create Function URL for OCR Handler
@@ -25,10 +27,39 @@ backend.ocrHandler.resources.lambda.addToRolePolicy(
   })
 );
 
-// Expose Function URL in amplify_outputs.json
+// Create Function URL for Liveness Handler
+const livenessFunctionUrl = backend.livenessHandler.resources.lambda.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+});
+
+// Grant Rekognition permissions to the Liveness Lambda
+// (used by our backend to create sessions and fetch results server-to-server)
+backend.livenessHandler.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: [
+      'rekognition:CreateFaceLivenessSession',
+      'rekognition:GetFaceLivenessSessionResults',
+    ],
+    resources: ['*'],
+  })
+);
+
+// Grant the Cognito unauthenticated (guest) role permission to start a
+// Liveness session directly from the browser via WebSocket streaming.
+// This is what FaceLivenessDetector uses under the hood — it never
+// shows any login UI to the end user, it's purely for signing requests.
+backend.auth.resources.unauthenticatedUserIamRole.addToPrincipalPolicy(
+  new PolicyStatement({
+    actions: ['rekognition:StartFaceLivenessSession'],
+    resources: ['*'],
+  })
+);
+
+// Expose Function URLs in amplify_outputs.json
 backend.addOutput({
   custom: {
     ocrApiUrl: ocrFunctionUrl.url,
+    livenessApiUrl: livenessFunctionUrl.url,
   },
 });
 

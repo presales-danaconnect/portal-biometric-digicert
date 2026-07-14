@@ -30,8 +30,12 @@
   },
   "liveness": {
     "title": "Detección de Vida Facial",
-    "start": "Iniciar Verificación de Vida",
-    "guideText": "Posiciona tu rostro en el óvalo"
+    "guideText": "Posiciona tu rostro en el óvalo",
+    "creatingSession": "Preparando verificación...",
+    "success": "Verificación exitosa",
+    "failed": "Verificación fallida",
+    "confidence": "Confianza",
+    "tryAgain": "Intentar de Nuevo"
   },
   "compareFaces": {
     "title": "Comparación de Rostros",
