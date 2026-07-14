@@ -7,7 +7,7 @@ const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB per image
 const ALLOWED_ORIGINS = [
   'http://localhost:5173', // Local development
-  // Add production origins here, e.g., 'https://your-domain.com'
+  'https://main.d21x455s6ork0e.amplifyapp.com', // Production
 ];
 
 interface DocumentInfo {
