@@ -1,15 +1,3 @@
-/**
- * API Service for OCR
- * 
- * Calls AWS Lambda function that uses Bedrock (Claude Sonnet) for document OCR
- * 
- * After running `amplify push`, the function URL will be available in:
- * - Amplify Console > Backend environments > Function details
- * - Or run `amplify function get-ocr-handler'
- */
-
-// For local development, use empty string (will be replaced by env var)
-// In production, set this via Vite environment variable
 const API_ENDPOINT = import.meta.env.VITE_OCR_API_ENDPOINT || '/api/ocr';
 
 export interface DocumentInfo {
@@ -37,9 +25,18 @@ export interface OCRResponse {
  * 
  * @param frontImage - Base64 encoded front image
  * @param backImage - Base64 encoded back image
+ * @param tenant - Tenant identifier, forwarded to the webhook payload
+ * @param webhookUrl - Client webhook URL; the Lambda notifies it server-to-server
+ * @param geolocation - Captured browser geolocation, forwarded to the webhook payload
  * @returns OCR result with extracted document information
  */
-export async function callOCRAPI(frontImage: string, backImage: string): Promise<OCRResponse> {
+export async function callOCRAPI(
+  frontImage: string,
+  backImage: string,
+  tenant: string,
+  webhookUrl?: string,
+  geolocation?: string | null
+): Promise<OCRResponse> {
   try {
     const response = await fetch(`${API_ENDPOINT}`, {
       method: 'POST',
@@ -49,6 +46,9 @@ export async function callOCRAPI(frontImage: string, backImage: string): Promise
       body: JSON.stringify({
         frontImage,
         backImage,
+        tenant,
+        webhookUrl,
+        geolocation,
       }),
     });
 
@@ -63,13 +63,3 @@ export async function callOCRAPI(frontImage: string, backImage: string): Promise
     throw error;
   }
 }
-
-/**
- * Example Lambda Function URL format after deployment:
- * https://xxxxx.lambda-url.us-east-1.on.aws
- * 
- * To deploy:
- * 1. Run `amplify push` or `npx amplify sandbox push`
- * 2. Get the function URL from the output or Amplify Console
- * 3. Set REACT_APP_OCR_API_ENDPOINT environment variable
- */

@@ -22,7 +22,7 @@ const Footer: React.FC<FooterProps> = ({
   if (!enabled) return null;
 
   return (
-    <Card variation="elevated" backgroundColor={backgroundColor}>
+    <Card variation="elevated" backgroundColor={backgroundColor} width="100%">
       <Flex direction="column" alignItems={alignMap[align]} gap="xs" padding="l">
         <Flex direction="row" gap="m">
           {privacyPolicyUrl && (

@@ -7,6 +7,7 @@ export interface TenantConfig {
   headerLogoUrl: string;
   footerPrivacyPolicyUrl: string;
   footerWebsiteUrl: string;
+  webhookUrl: string;
   colors: {
     primary: string;
     headerBackground: string;

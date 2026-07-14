@@ -14,6 +14,7 @@ import {
 import '@aws-amplify/ui-react/styles.css';
 import { getTenantConfig } from './config/tenantConfig';
 import { useTranslation } from './i18n/i18n';
+import { useGeolocation } from './hooks/useGeolocation';
 import { AutoCamera } from './components/verification/AutoCamera';
 import { callOCRAPI, OCRResponse } from './services/api';
 import Header from './components/layout/Header';
@@ -25,6 +26,8 @@ function App() {
   const service = urlParams.get('service') || 'default';
   const tenant = urlParams.get('tenant') || 'demo';
   const { t } = useTranslation();
+  const tenantConfig = getTenantConfig(tenant);
+  const geolocation = useGeolocation();
 
   // Estados para OCR
   const [frontImage, setFrontImage] = useState<string | null>(null);
@@ -75,9 +78,10 @@ function App() {
 
     setIsProcessing(true);
     try {
-      const result = await callOCRAPI(frontImage, backImage);
+      const result = await callOCRAPI(frontImage, backImage, tenant, tenantConfig.webhookUrl, geolocation);
       if (result.success && result.data) {
         setOcrResult(result);
+        // El webhook ahora lo notifica la Lambda directamente (server-to-server)
       } else {
         alert(`${t('common.error')}: ` + (result.error || t('common.unknownError')));
       }
@@ -134,7 +138,7 @@ function App() {
     const showImage = ocrStep === 'frontFreezed' || ocrStep === 'backFreezed' || ocrStep === 'done';
 
     return (
-      <Card variation="elevated" padding="xl">
+      <Card variation="elevated" padding="xl" width="100%">
         <Flex direction="column" gap="xl">
           <Flex direction="column" gap="xs">
             <Heading level={2}>📄 {t('ocr.title')}</Heading>
@@ -260,7 +264,7 @@ function App() {
   // Renderizar Liveness Check (versión simple)
   const renderLivenessFlow = () => {
     return (
-      <Card variation="elevated" padding="xl">
+      <Card variation="elevated" padding="xl" width="100%">
         <Flex direction="column" gap="xl">
           <Flex direction="column" gap="xs">
             <Heading level={2}>👤 {t('liveness.title')}</Heading>
@@ -304,7 +308,7 @@ function App() {
     const showImage = compareStep === 'dniFreezed' || compareStep === 'faceFreezed' || compareStep === 'done';
 
     return (
-      <Card variation="elevated" padding="xl">
+      <Card variation="elevated" padding="xl" width="100%">
         <Flex direction="column" gap="xl">
           <Flex direction="column" gap="xs">
             <Heading level={2}>🔄 {t('compareFaces.title')}</Heading>
@@ -378,7 +382,12 @@ function App() {
               <Button
                 variation="primary"
                 size="large"
-                onClick={() => alert(t('compareFaces.comparingAlert'))}
+                onClick={() => {
+                  alert(t('compareFaces.comparingAlert'));
+                  // TODO: cuando el backend real de compare-faces esté listo,
+                  // reemplazar este alert por la llamada real y notificar
+                  // el webhook desde esa Lambda, igual que hace ocr-handler.
+                }}
                 isDisabled={!dniImage || !faceImage}
               >
                 {t('compareFaces.compare')}
@@ -414,7 +423,7 @@ function App() {
 
       default:
         return (
-          <Card variation="elevated" padding="xl">
+          <Card variation="elevated" padding="xl" width="100%">
             <Flex direction="column" gap="xl" alignItems="center">
               <Flex direction="column" gap="xs" alignItems="center">
                 <Heading level={2}>🔐 {t('home.title')}</Heading>
@@ -456,7 +465,7 @@ function App() {
         );
     }
   };
-  const tenantConfig = getTenantConfig(tenant);
+
   return (
     <View backgroundColor="background.primary" minHeight="100vh">
       <Flex direction="column" minHeight="100vh">

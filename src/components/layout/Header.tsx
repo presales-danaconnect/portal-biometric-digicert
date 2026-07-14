@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({
   if (!enabled) return null;
 
   return (
-    <Card variation="elevated" backgroundColor={backgroundColor}>
+    <Card variation="elevated" backgroundColor={backgroundColor}  width="100%">
       <Flex
         as="header"
         direction="row"
