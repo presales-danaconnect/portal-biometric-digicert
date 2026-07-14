@@ -1,30 +1,55 @@
 import React from 'react';
+import { Card, Flex, Image, Heading } from '@aws-amplify/ui-react';
 
 interface HeaderProps {
   logoUrl?: string;
   title?: string;
   enabled?: boolean;
+  backgroundColor?: string;
+  fontColor?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
-const Header: React.FC<HeaderProps> = ({ logoUrl, title, enabled = true }) => {
+const alignMap = {
+  left: 'flex-start',
+  center: 'center',
+  right: 'flex-end',
+} as const;
+
+const Header: React.FC<HeaderProps> = ({
+  logoUrl, title, enabled = true, backgroundColor, fontColor, align = 'left'
+}) => {
   if (!enabled) return null;
 
   return (
-    <header className="header">
-      <div className="header-content">
+    <Card variation="elevated" backgroundColor={backgroundColor}>
+      <Flex
+        as="header"
+        direction="row"
+        alignItems="center"
+        justifyContent={alignMap[align]}
+        gap="m"
+        padding="l"
+      >
         {logoUrl && (
-          <img 
-            src={logoUrl} 
-            alt="Tenant Logo" 
-            className="header-logo"
+          <Image
+            src={logoUrl}
+            alt="Tenant Logo"
+            height="60px"
             onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
+              if (typeof e !== 'string') {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }
             }}
           />
         )}
-        {title && <h1 className="header-title">{title}</h1>}
-      </div>
-    </header>
+        {title && (
+          <Heading level={4} color={fontColor}>
+            {title}
+          </Heading>
+        )}
+      </Flex>
+    </Card>
   );
 };
 

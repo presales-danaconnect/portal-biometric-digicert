@@ -12,6 +12,7 @@ import {
   Loader,
   Alert,
 } from '@aws-amplify/ui-react';
+import { useTranslation } from '../../i18n/i18n';
 
 interface AutoCameraProps {
   guideType?: 'rectangle' | 'circle';
@@ -23,9 +24,10 @@ interface AutoCameraProps {
 export function AutoCamera({
   guideType = 'rectangle',
   guideText = '',
-  maxSeconds = 3,
+  maxSeconds = 5,
   onCapture,
 }: AutoCameraProps) {
+  const { t } = useTranslation();
   const webcamRef = useRef<Webcam>(null);
   
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -78,19 +80,19 @@ export function AutoCamera({
         
         if (msg.includes('Permission') || msg.includes('NotAllowed')) {
           setError('permission_denied');
-          setErrorMessage('Camera access was denied. Please allow camera access.');
+          setErrorMessage(t('camera.errors.permissionDenied'));
         } else if (msg.includes('NotFound') || msg.includes('not found')) {
           setError('no_camera');
-          setErrorMessage('No camera detected.');
+          setErrorMessage(t('camera.errors.noCamera'));
         } else {
           setError('error');
-          setErrorMessage('Unable to activate camera.');
+          setErrorMessage(t('camera.errors.generic'));
         }
         
         setIsCameraActive(false);
       }
     }
-  }, [facingMode, cleanup]);
+  }, [facingMode, cleanup, t]);
   
   useEffect(() => {
     activate();
@@ -129,16 +131,16 @@ export function AutoCamera({
       <Card variation="outlined" padding="l">
         <Flex direction="column" gap="m" alignItems="center">
           <Alert variation="error">
-            <Text>{errorMessage || 'Camera error occurred'}</Text>
+            <Text>{errorMessage || t('camera.errors.generic')}</Text>
           </Alert>
           <Button 
             variation="primary" 
             onClick={handleRetry}
             minHeight="44px"
             minWidth="44px"
-            aria-label="Retry camera activation"
+            aria-label={t('camera.retryAriaLabel')}
           >
-            Try Again
+            {t('camera.tryAgain')}
           </Button>
         </Flex>
       </Card>
@@ -150,8 +152,8 @@ export function AutoCamera({
       <Card variation="outlined" padding="l">
         <Flex direction="column" gap="m" alignItems="center">
           <Loader size="large" />
-          <Text>Activating camera...</Text>
-          <Text fontSize="small">Please allow camera access if prompted</Text>
+          <Text>{t('camera.activating')}</Text>
+          <Text fontSize="small">{t('camera.allowPrompt')}</Text>
         </Flex>
       </Card>
     );
@@ -228,7 +230,7 @@ export function AutoCamera({
       )}
       
       <Text fontSize="small" color="font.tertiary">
-        Auto-capture in {maxSeconds - seconds} seconds...
+        {t('camera.autoCaptureIn', { seconds: maxSeconds - seconds })}
       </Text>
     </Flex>
   );

@@ -1,0 +1,81 @@
+{
+  "ocr": {
+    "title": "Verificación OCR de Documento",
+    "photoCaptured": "Foto Capturada",
+    "frontSide": "Lado Frontal",
+    "backSide": "Lado Posterior",
+    "continue": "Continuar",
+    "retake": "Repetir",
+    "submit": "Enviar",
+    "processing": "Procesando...",
+    "startOver": "Empezar de Nuevo",
+    "results": "Resultados OCR",
+    "documentType": "Tipo de Documento",
+    "country": "País",
+    "documentNumber": "N° Documento",
+    "names": "Nombres",
+    "lastNames": "Apellidos",
+    "birthDate": "Fecha de Nacimiento",
+    "expiration": "Vencimiento",
+    "gender": "Género",
+    "nationality": "Nacionalidad",
+    "processingError": "Error al procesar el documento",
+    "steps": {
+      "front": "Posiciona el frente del documento",
+      "frontFreezed": "Frente capturado",
+      "back": "Posiciona el reverso del docuemento",
+      "backFreezed": "Reverso capturado",
+      "done": "Listo para procesar OCR"
+    }
+  },
+  "liveness": {
+    "title": "Detección de Vida Facial",
+    "start": "Iniciar Verificación de Vida",
+    "guideText": "Posiciona tu rostro en el óvalo"
+  },
+  "compareFaces": {
+    "title": "Comparación de Rostros",
+    "dniPhoto": "Foto de Cédula",
+    "facePhoto": "Foto de Rostro",
+    "compare": "Comparar con AWS Rekognition",
+    "comparingAlert": "Comparando rostros con AWS Rekognition...",
+    "steps": {
+      "dni": "Posiciona la cédula en el rectángulo",
+      "dniFreezed": "Cédula capturada",
+      "face": "Posiciona tu rostro en el óvalo",
+      "faceFreezed": "Rostro capturado",
+      "done": "Listo para comparar"
+    }
+  },
+  "home": {
+    "title": "SDK de Verificación de Identidad",
+    "subtitle": "Servicios de verificación con auto-cámara",
+    "ocrCard": "Documento OCR",
+    "ocrDesc": "Auto-cámara para fotos de cédula",
+    "livenessCard": "Verificación de Vida",
+    "livenessDesc": "Detección facial",
+    "compareCard": "Comparación de Rostros",
+    "compareDesc": "Coincidencia de cédula + rostro"
+  },
+  "footer": {
+    "privacyPolicy": "Política de Privacidad",
+    "website": "Sitio Web",
+    "copyright": "SDK de Verificación de Identidad"
+  },
+  "common": {
+    "error": "Error",
+    "unknownError": "Error desconocido"
+  },
+  "camera": {
+    "activating": "Activando cámara...",
+    "allowPrompt": "Por favor permite el acceso a la cámara si se solicita",
+    "tryAgain": "Intentar de Nuevo",
+    "retryAriaLabel": "Reintentar activación de cámara",
+    "autoCaptureIn": "Captura automática en {seconds} segundos...",
+    "errors": {
+      "permissionDenied": "Se denegó el acceso a la cámara. Por favor permite el acceso.",
+      "noCamera": "No se detectó ninguna cámara.",
+      "generic": "No se pudo activar la cámara."
+    }
+  }
+}

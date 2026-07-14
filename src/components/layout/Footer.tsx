@@ -1,48 +1,46 @@
 import React from 'react';
+import { Card, Flex, Text, Link } from '@aws-amplify/ui-react';
 
 interface FooterProps {
   privacyPolicyUrl?: string;
   websiteUrl?: string;
   enabled?: boolean;
+  backgroundColor?: string;
+  fontColor?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
-const Footer: React.FC<FooterProps> = ({ 
-  privacyPolicyUrl, 
-  websiteUrl, 
-  enabled = true 
+const alignMap = {
+  left: 'flex-start',
+  center: 'center',
+  right: 'flex-end',
+} as const;
+
+const Footer: React.FC<FooterProps> = ({
+  privacyPolicyUrl, websiteUrl, enabled = true, backgroundColor, fontColor, align = 'center'
 }) => {
   if (!enabled) return null;
 
   return (
-    <footer className="footer">
-      <div className="footer-content">
-        <div className="footer-links">
+    <Card variation="elevated" backgroundColor={backgroundColor}>
+      <Flex direction="column" alignItems={alignMap[align]} gap="xs" padding="l">
+        <Flex direction="row" gap="m">
           {privacyPolicyUrl && (
-            <a 
-              href={privacyPolicyUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="footer-link"
-            >
+            <Link href={privacyPolicyUrl} isExternal color={fontColor}>
               Privacy Policy
-            </a>
+            </Link>
           )}
           {websiteUrl && (
-            <a 
-              href={websiteUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="footer-link"
-            >
+            <Link href={websiteUrl} isExternal color={fontColor}>
               Website
-            </a>
+            </Link>
           )}
-        </div>
-        <div className="footer-copyright">
+        </Flex>
+        <Text fontSize="small" color={fontColor}>
           © {new Date().getFullYear()} Identity Verification SDK
-        </div>
-      </div>
-    </footer>
+        </Text>
+      </Flex>
+    </Card>
   );
 };
 

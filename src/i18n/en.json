@@ -1,0 +1,81 @@
+{
+  "ocr": {
+    "title": "Document OCR Verification",
+    "photoCaptured": "Photo Captured",
+    "frontSide": "Front Side",
+    "backSide": "Back Side",
+    "continue": "Continue",
+    "retake": "Retake",
+    "submit": "Submit to AWS Bedrock",
+    "processing": "Processing...",
+    "startOver": "Start Over",
+    "results": "OCR Results",
+    "documentType": "Document Type",
+    "country": "Country",
+    "documentNumber": "Document #",
+    "names": "Names",
+    "lastNames": "Last Names",
+    "birthDate": "Birth Date",
+    "expiration": "Expiration",
+    "gender": "Gender",
+    "nationality": "Nationality",
+    "processingError": "Error processing document",
+    "steps": {
+      "front": "Position DNI front side",
+      "frontFreezed": "Front side captured",
+      "back": "Position DNI back side",
+      "backFreezed": "Back side captured",
+      "done": "Ready for OCR processing"
+    }
+  },
+  "liveness": {
+    "title": "Face Liveness Detection",
+    "start": "Start Liveness Check",
+    "guideText": "Position your face in the oval"
+  },
+  "compareFaces": {
+    "title": "Face Comparison",
+    "dniPhoto": "DNI Photo",
+    "facePhoto": "Face Photo",
+    "compare": "Compare with AWS Rekognition",
+    "comparingAlert": "Comparing faces with AWS Rekognition...",
+    "steps": {
+      "dni": "Position DNI in rectangle",
+      "dniFreezed": "DNI captured",
+      "face": "Position your face in oval",
+      "faceFreezed": "Face captured",
+      "done": "Ready to compare"
+    }
+  },
+  "home": {
+    "title": "Identity Verification SDK",
+    "subtitle": "Auto-camera verification services",
+    "ocrCard": "OCR Document",
+    "ocrDesc": "Auto-camera for DNI photos",
+    "livenessCard": "Liveness Check",
+    "livenessDesc": "Face detection",
+    "compareCard": "Face Comparison",
+    "compareDesc": "DNI + Face matching"
+  },
+  "footer": {
+    "privacyPolicy": "Privacy Policy",
+    "website": "Website",
+    "copyright": "Identity Verification SDK"
+  },
+  "common": {
+    "error": "Error",
+    "unknownError": "Unknown error"
+  },
+  "camera": {
+    "activating": "Activating camera...",
+    "allowPrompt": "Please allow camera access if prompted",
+    "tryAgain": "Try Again",
+    "retryAriaLabel": "Retry camera activation",
+    "autoCaptureIn": "Auto-capture in {seconds} seconds...",
+    "errors": {
+      "permissionDenied": "Camera access was denied. Please allow camera access.",
+      "noCamera": "No camera detected.",
+      "generic": "Unable to activate camera."
+    }
+  }
+}

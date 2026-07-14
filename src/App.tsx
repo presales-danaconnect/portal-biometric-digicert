@@ -9,19 +9,22 @@ import {
   View,
   Divider,
   Loader,
-  ToggleButtonGroup,
-  ToggleButton,
   Image,
 } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
+import { getTenantConfig } from './config/tenantConfig';
+import { useTranslation } from './i18n/i18n';
 import { AutoCamera } from './components/verification/AutoCamera';
 import { callOCRAPI, OCRResponse } from './services/api';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
 
 function App() {
   // Determinar el servicio desde los parámetros de URL
   const urlParams = new URLSearchParams(window.location.search);
   const service = urlParams.get('service') || 'default';
   const tenant = urlParams.get('tenant') || 'demo';
+  const { t } = useTranslation();
 
   // Estados para OCR
   const [frontImage, setFrontImage] = useState<string | null>(null);
@@ -29,7 +32,7 @@ function App() {
   const [ocrStep, setOcrStep] = useState<'front' | 'frontFreezed' | 'back' | 'backFreezed' | 'done'>('front');
   const [ocrResult, setOcrResult] = useState<OCRResponse | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   // Estados para Compare Faces
   const [dniImage, setDniImage] = useState<string | null>(null);
   const [faceImage, setFaceImage] = useState<string | null>(null);
@@ -69,17 +72,17 @@ function App() {
   // Función para hacer submit a Bedrock (OCR)
   const handleOCROnSubmit = async () => {
     if (!frontImage || !backImage) return;
-    
+
     setIsProcessing(true);
     try {
       const result = await callOCRAPI(frontImage, backImage);
       if (result.success && result.data) {
         setOcrResult(result);
       } else {
-        alert('Error: ' + (result.error || 'Unknown error'));
+        alert(`${t('common.error')}: ` + (result.error || t('common.unknownError')));
       }
     } catch (error) {
-      alert('Error processing document: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      alert(`${t('ocr.processingError')}: ` + (error instanceof Error ? error.message : t('common.unknownError')));
     } finally {
       setIsProcessing(false);
     }
@@ -119,11 +122,11 @@ function App() {
   // Renderizar flujo OCR
   const renderOCRFlow = () => {
     const stepMessages = {
-      front: 'Position DNI front side',
-      frontFreezed: 'Front side captured',
-      back: 'Position DNI back side', 
-      backFreezed: 'Back side captured',
-      done: 'Ready for OCR processing'
+      front: t('ocr.steps.front'),
+      frontFreezed: t('ocr.steps.frontFreezed'),
+      back: t('ocr.steps.back'),
+      backFreezed: t('ocr.steps.backFreezed'),
+      done: t('ocr.steps.done')
     };
 
     const currentMessage = stepMessages[ocrStep];
@@ -134,31 +137,31 @@ function App() {
       <Card variation="elevated" padding="xl">
         <Flex direction="column" gap="xl">
           <Flex direction="column" gap="xs">
-            <Heading level={2}>📄 Document OCR Verification</Heading>
+            <Heading level={2}>📄 {t('ocr.title')}</Heading>
             <Badge size="small" variation="info">
-              Tenant: {tenant} | Auto Camera
+              Tenant: {tenant}
             </Badge>
           </Flex>
-          
+
           <Divider />
-          
+
           <Card variation="outlined">
             <Flex direction="column" gap="l" alignItems="center" padding="l">
               {showCamera ? (
                 <AutoCamera
                   guideType="rectangle"
                   guideText={currentMessage}
-                  maxSeconds={3}
+                  maxSeconds={5}
                   onCapture={handleOCRCapture}
                 />
               ) : showImage ? (
                 <Flex direction="column" gap="l" width="100%">
-                  <Heading level={4}>✅ Photo Captured</Heading>
-                  
+                  <Heading level={4}>✅ {t('ocr.photoCaptured')}</Heading>
+
                   <Flex direction="row" gap="l" wrap="wrap" justifyContent="center">
                     {frontImage && (ocrStep === 'frontFreezed' || ocrStep === 'backFreezed' || ocrStep === 'done') && (
                       <Flex direction="column" gap="xs" alignItems="center">
-                        <Badge>Front Side</Badge>
+                        <Badge>{t('ocr.frontSide')}</Badge>
                         <Image
                           src={frontImage}
                           alt="Front"
@@ -169,10 +172,10 @@ function App() {
                         />
                       </Flex>
                     )}
-                    
+
                     {backImage && (ocrStep === 'backFreezed' || ocrStep === 'done') && (
                       <Flex direction="column" gap="xs" alignItems="center">
-                        <Badge>Back Side</Badge>
+                        <Badge>{t('ocr.backSide')}</Badge>
                         <Image
                           src={backImage}
                           alt="Back"
@@ -184,14 +187,14 @@ function App() {
                       </Flex>
                     )}
                   </Flex>
-                  
+
                   {(ocrStep === 'frontFreezed' || ocrStep === 'backFreezed') && (
                     <Flex gap="m" wrap="wrap" justifyContent="center">
                       <Button variation="primary" onClick={handleContinueOCR}>
-                        Continue
+                        {t('ocr.continue')}
                       </Button>
                       <Button onClick={handleRetakeOCR}>
-                        Retake
+                        {t('ocr.retake')}
                       </Button>
                     </Flex>
                   )}
@@ -199,11 +202,11 @@ function App() {
               ) : null}
             </Flex>
           </Card>
-          
+
           {ocrStep === 'done' && (
             <Flex direction="column" gap="m" alignItems="center" width="100%">
               <Flex gap="m" wrap="wrap" justifyContent="center">
-                <Button 
+                <Button
                   variation="primary"
                   onClick={handleOCROnSubmit}
                   isDisabled={isProcessing || !frontImage || !backImage}
@@ -211,13 +214,13 @@ function App() {
                   {isProcessing ? (
                     <Flex gap="xs" alignItems="center">
                       <Loader size="small" />
-                      <Text>Processing...</Text>
+                      <Text>{t('ocr.processing')}</Text>
                     </Flex>
                   ) : (
-                    '🚀 Submit to AWS Bedrock'
+                    `${t('ocr.submit')}`
                   )}
                 </Button>
-                <Button 
+                <Button
                   variation="warning"
                   onClick={() => {
                     setFrontImage(null);
@@ -226,24 +229,24 @@ function App() {
                     setOcrResult(null);
                   }}
                 >
-                  Start Over
+                  {t('ocr.startOver')}
                 </Button>
               </Flex>
-              
+
               {ocrResult && ocrResult.data && (
                 <Card variation="outlined" width="100%" padding="m">
-                  <Heading level={4}>📋 OCR Results</Heading>
+                  <Heading level={4}>📋 {t('ocr.results')}</Heading>
                   <Divider />
                   <Flex direction="column" gap="xs" marginTop="m">
-                    <Text><strong>Document Type:</strong> {ocrResult.data.documentInfo.documentType}</Text>
-                    <Text><strong>Country:</strong> {ocrResult.data.documentInfo.country}</Text>
-                    <Text><strong>Document #:</strong> {ocrResult.data.documentInfo.documentNumber}</Text>
-                    <Text><strong>Names:</strong> {ocrResult.data.documentInfo.firstName}</Text>
-                    <Text><strong>Last Names:</strong> {ocrResult.data.documentInfo.lastName}</Text>
-                    <Text><strong>Birth Date:</strong> {ocrResult.data.documentInfo.birthDate}</Text>
-                    <Text><strong>Expiration:</strong> {ocrResult.data.documentInfo.expirationDate}</Text>
-                    {ocrResult.data.documentInfo.gender && <Text><strong>Gender:</strong> {ocrResult.data.documentInfo.gender}</Text>}
-                    {ocrResult.data.documentInfo.nationality && <Text><strong>Nationality:</strong> {ocrResult.data.documentInfo.nationality}</Text>}
+                    <Text><strong>{t('ocr.documentType')}:</strong> {ocrResult.data.documentInfo.documentType}</Text>
+                    <Text><strong>{t('ocr.country')}:</strong> {ocrResult.data.documentInfo.country}</Text>
+                    <Text><strong>{t('ocr.documentNumber')}:</strong> {ocrResult.data.documentInfo.documentNumber}</Text>
+                    <Text><strong>{t('ocr.names')}:</strong> {ocrResult.data.documentInfo.firstName}</Text>
+                    <Text><strong>{t('ocr.lastNames')}:</strong> {ocrResult.data.documentInfo.lastName}</Text>
+                    <Text><strong>{t('ocr.birthDate')}:</strong> {ocrResult.data.documentInfo.birthDate}</Text>
+                    <Text><strong>{t('ocr.expiration')}:</strong> {ocrResult.data.documentInfo.expirationDate}</Text>
+                    {ocrResult.data.documentInfo.gender && <Text><strong>{t('ocr.gender')}:</strong> {ocrResult.data.documentInfo.gender}</Text>}
+                    {ocrResult.data.documentInfo.nationality && <Text><strong>{t('ocr.nationality')}:</strong> {ocrResult.data.documentInfo.nationality}</Text>}
                   </Flex>
                 </Card>
               )}
@@ -260,24 +263,24 @@ function App() {
       <Card variation="elevated" padding="xl">
         <Flex direction="column" gap="xl">
           <Flex direction="column" gap="xs">
-            <Heading level={2}>👤 Face Liveness Detection</Heading>
+            <Heading level={2}>👤 {t('liveness.title')}</Heading>
             <Badge size="small" variation="success">
               Tenant: {tenant} | AWS Rekognition
             </Badge>
           </Flex>
-          
+
           <Divider />
-          
+
           <Card variation="outlined">
             <Flex direction="column" gap="l" alignItems="center" padding="l">
               <AutoCamera
                 guideType="circle"
-                guideText="Position your face in the oval"
+                guideText={t('liveness.guideText')}
                 maxSeconds={3}
               />
-              
+
               <Button variation="primary" size="large">
-                Start Liveness Check
+                {t('liveness.start')}
               </Button>
             </Flex>
           </Card>
@@ -289,11 +292,11 @@ function App() {
   // Renderizar Compare Faces
   const renderCompareFacesFlow = () => {
     const stepMessages = {
-      dni: 'Position DNI in rectangle',
-      dniFreezed: 'DNI captured',
-      face: 'Position your face in oval',
-      faceFreezed: 'Face captured',
-      done: 'Ready to compare'
+      dni: t('compareFaces.steps.dni'),
+      dniFreezed: t('compareFaces.steps.dniFreezed'),
+      face: t('compareFaces.steps.face'),
+      faceFreezed: t('compareFaces.steps.faceFreezed'),
+      done: t('compareFaces.steps.done')
     };
 
     const currentMessage = stepMessages[compareStep];
@@ -304,14 +307,14 @@ function App() {
       <Card variation="elevated" padding="xl">
         <Flex direction="column" gap="xl">
           <Flex direction="column" gap="xs">
-            <Heading level={2}>🔄 Face Comparison</Heading>
+            <Heading level={2}>🔄 {t('compareFaces.title')}</Heading>
             <Badge size="small" variation="warning">
               Tenant: {tenant} | AWS Rekognition
             </Badge>
           </Flex>
-          
+
           <Divider />
-          
+
           <Card variation="outlined">
             <Flex direction="column" gap="l" alignItems="center" padding="l">
               {showCamera ? (
@@ -323,12 +326,12 @@ function App() {
                 />
               ) : showImage ? (
                 <Flex direction="column" gap="l" width="100%">
-                  <Heading level={4}>✅ Photo Captured</Heading>
-                  
+                  <Heading level={4}>✅ {t('ocr.photoCaptured')}</Heading>
+
                   <Flex direction="row" gap="l" wrap="wrap" justifyContent="center">
                     {dniImage && (compareStep === 'dniFreezed' || compareStep === 'faceFreezed' || compareStep === 'done') && (
                       <Flex direction="column" gap="xs" alignItems="center">
-                        <Badge variation="info">DNI Photo</Badge>
+                        <Badge variation="info">{t('compareFaces.dniPhoto')}</Badge>
                         <Image
                           src={dniImage}
                           alt="DNI"
@@ -339,10 +342,10 @@ function App() {
                         />
                       </Flex>
                     )}
-                    
+
                     {faceImage && (compareStep === 'faceFreezed' || compareStep === 'done') && (
                       <Flex direction="column" gap="xs" alignItems="center">
-                        <Badge variation="success">Face Photo</Badge>
+                        <Badge variation="success">{t('compareFaces.facePhoto')}</Badge>
                         <Image
                           src={faceImage}
                           alt="Face"
@@ -354,14 +357,14 @@ function App() {
                       </Flex>
                     )}
                   </Flex>
-                  
+
                   {(compareStep === 'dniFreezed' || compareStep === 'faceFreezed') && (
                     <Flex gap="m" wrap="wrap" justifyContent="center">
                       <Button variation="primary" onClick={handleContinueCompare}>
-                        Continue
+                        {t('ocr.continue')}
                       </Button>
                       <Button onClick={handleRetakeCompare}>
-                        Retake
+                        {t('ocr.retake')}
                       </Button>
                     </Flex>
                   )}
@@ -369,18 +372,18 @@ function App() {
               ) : null}
             </Flex>
           </Card>
-          
+
           {compareStep === 'done' && (
             <Flex gap="m" wrap="wrap" justifyContent="center">
-              <Button 
+              <Button
                 variation="primary"
                 size="large"
-                onClick={() => alert('Comparing faces with AWS Rekognition...')}
+                onClick={() => alert(t('compareFaces.comparingAlert'))}
                 isDisabled={!dniImage || !faceImage}
               >
-                🚀 Compare with AWS Rekognition
+                {t('compareFaces.compare')}
               </Button>
-              <Button 
+              <Button
                 variation="warning"
                 onClick={() => {
                   setDniImage(null);
@@ -388,7 +391,7 @@ function App() {
                   setCompareStep('dni');
                 }}
               >
-                Start Over
+                {t('ocr.startOver')}
               </Button>
             </Flex>
           )}
@@ -399,52 +402,52 @@ function App() {
 
   // Renderizar servicio seleccionado
   const renderService = () => {
-    switch(service) {
+    switch (service) {
       case 'ocr':
         return renderOCRFlow();
-      
+
       case 'liveness':
         return renderLivenessFlow();
-      
+
       case 'compare-faces':
         return renderCompareFacesFlow();
-      
+
       default:
         return (
           <Card variation="elevated" padding="xl">
             <Flex direction="column" gap="xl" alignItems="center">
               <Flex direction="column" gap="xs" alignItems="center">
-                <Heading level={2}>🔐 Identity Verification SDK</Heading>
+                <Heading level={2}>🔐 {t('home.title')}</Heading>
                 <Badge size="small" variation="info">
                   AWS Amplify + AI Services
                 </Badge>
               </Flex>
-              
+
               <Divider />
-              
+
               <Text textAlign="center" variation="primary">
-                Auto-camera verification services
+                {t('home.subtitle')}
               </Text>
-              
+
               <Flex direction="column" gap="m" width="100%" maxWidth="400px">
                 <Button variation="primary" size="large" as="a" href="/verify?service=ocr&tenant=demo">
                   <Flex direction="column" alignItems="flex-start" gap="xs">
-                    <Text fontWeight="bold">📄 OCR Document</Text>
-                    <Text fontSize="small">Auto-camera for DNI photos</Text>
+                    <Text fontWeight="bold">📄 {t('home.ocrCard')}</Text>
+                    <Text fontSize="small">{t('home.ocrDesc')}</Text>
                   </Flex>
                 </Button>
-                
+
                 <Button variation="primary" size="large" as="a" href="/verify?service=liveness&tenant=demo">
                   <Flex direction="column" alignItems="flex-start" gap="xs">
-                    <Text fontWeight="bold">👤 Liveness Check</Text>
-                    <Text fontSize="small">Face detection</Text>
+                    <Text fontWeight="bold">👤 {t('home.livenessCard')}</Text>
+                    <Text fontSize="small">{t('home.livenessDesc')}</Text>
                   </Flex>
                 </Button>
-                
+
                 <Button variation="primary" size="large" as="a" href="/verify?service=compare-faces&tenant=demo">
                   <Flex direction="column" alignItems="flex-start" gap="xs">
-                    <Text fontWeight="bold">🔄 Face Comparison</Text>
-                    <Text fontSize="small">DNI + Face matching</Text>
+                    <Text fontWeight="bold">🔄 {t('home.compareCard')}</Text>
+                    <Text fontSize="small">{t('home.compareDesc')}</Text>
                   </Flex>
                 </Button>
               </Flex>
@@ -453,42 +456,38 @@ function App() {
         );
     }
   };
-
+  const tenantConfig = getTenantConfig(tenant);
   return (
-    <View backgroundColor="background.primary" minHeight="100vh" padding={{ base: 'm', large: 'xl' }}>
-      <Flex direction="column" gap="xl" maxWidth="800px" margin="0 auto">
-        <Card variation="outlined">
-          <Flex direction={{ base: 'column', medium: 'row' }} justifyContent="space-between" alignItems="center" gap="m" padding="l">
-            <Flex direction="column" gap="xs">
-              <Heading level={1}>🔐 ID Verify SDK</Heading>
-              <Flex gap="s" alignItems="center">
-                <Badge size="small">{service.toUpperCase()}</Badge>
-                <Text fontSize="small" color="font.tertiary">| Tenant: {tenant}</Text>
-              </Flex>
-            </Flex>
-            
-            <ToggleButtonGroup value={service} isExclusive onChange={(value) => {
-              if (value) window.location.href = `/verify?service=${value}&tenant=${tenant}`;
-            }}>
-              <ToggleButton value="ocr">📄 OCR</ToggleButton>
-              <ToggleButton value="liveness">👤 Liveness</ToggleButton>
-              <ToggleButton value="compare-faces">🔄 Compare</ToggleButton>
-            </ToggleButtonGroup>
-          </Flex>
-        </Card>
-        
-        {renderService()}
-        
-        <Card variation="outlined">
-          <Flex direction="column" alignItems="center" gap="xs" padding="l">
-            <Text fontSize="small" color="font.tertiary">
-              🚀 Auto Camera • AWS AI Services • Multi-tenant SaaS
-            </Text>
-          </Flex>
-        </Card>
+    <View backgroundColor="background.primary" minHeight="100vh">
+      <Flex direction="column" minHeight="100vh">
+        <Header
+          title={tenantConfig.headerTitle}
+          logoUrl={tenantConfig.headerLogoUrl}
+          backgroundColor={tenantConfig.colors.headerBackground}
+          fontColor={tenantConfig.colors.headerFontColor}
+          align={tenantConfig.layout.headerAlign}
+        />
+
+        <Flex
+          maxWidth="800px"
+          margin="0 auto"
+          width="100%"
+          padding={{ base: 'm', large: 'xl' }}
+          flex="1"
+        >
+          {renderService()}
+        </Flex>
+
+        <Footer
+          privacyPolicyUrl={tenantConfig.footerPrivacyPolicyUrl}
+          websiteUrl={tenantConfig.footerWebsiteUrl}
+          backgroundColor={tenantConfig.colors.footerBackground}
+          fontColor={tenantConfig.colors.footerFontColor}
+          align={tenantConfig.layout.footerAlign}
+        />
       </Flex>
     </View>
   );
-}
+};
 
 export default App;
