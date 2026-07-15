@@ -4,12 +4,16 @@ import {
   GetFaceLivenessSessionResultsCommand,
   CompareFacesCommand,
 } from '@aws-sdk/client-rekognition';
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { notifyWebhook } from '../shared/webhookNotifier';
 import { getCorsHeaders } from '../shared/cors';
+import { DOCUMENT_VALIDATION_PROMPT } from './documentValidationPrompt';
 
-const client = new RekognitionClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const rekognitionClient = new RekognitionClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const BEDROCK_MODEL_ID = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
 
 interface Base64Data {
   data: string;
@@ -34,7 +38,6 @@ function classifyRekognitionError(error: unknown): { errorCode: string; message:
 
   switch (name) {
     case 'InvalidParameterException':
-      // For CompareFaces specifically, this is almost always "no face detected"
       return { errorCode: 'NO_FACE_DETECTED', message: 'No face detected in one of the images' };
     case 'ImageTooLargeException':
       return { errorCode: 'IMAGE_TOO_LARGE', message: 'Image size exceeds the allowed limit' };
@@ -55,7 +58,55 @@ function classifyRekognitionError(error: unknown): { errorCode: string; message:
   }
 }
 
+/**
+ * Uses Bedrock (Claude Sonnet) to validate that the document image
+ * actually shows a valid identity document with a visible face photo.
+ */
+async function isValidIdentityDocument(documentData: Base64Data): Promise<boolean> {
+  const command = new InvokeModelCommand({
+    modelId: BEDROCK_MODEL_ID,
+    contentType: 'application/json',
+    accept: 'application/json',
+    body: JSON.stringify({
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: 100,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: documentData.mediaType, data: documentData.data } },
+            { type: 'text', text: DOCUMENT_VALIDATION_PROMPT },
+          ],
+        },
+      ],
+    }),
+  });
+
+  const response = await bedrockClient.send(command);
+  const responseBody = new TextDecoder().decode(response.body);
+  const parsedResponse = JSON.parse(responseBody);
+
+  let extractedText = '';
+  if (parsedResponse.content && Array.isArray(parsedResponse.content)) {
+    extractedText = parsedResponse.content.map((block: any) =>
+      block.type === 'text' ? block.text : ''
+    ).join('\n');
+  }
+
+  console.log('[CompareFaces] Document validation response:', extractedText.substring(0, 200));
+
+  try {
+    const jsonMatch = extractedText.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonText = jsonMatch ? jsonMatch[1] : extractedText;
+    const parsed = JSON.parse(jsonText.trim());
+    return parsed.isValidDocument === true;
+  } catch {
+    return false;
+  }
+}
+
 interface CompareFacesRequestBody {
+  action?: 'validate' | 'compare';
   sessionId: string;
   documentImage: string;
   tenant: string;
@@ -89,15 +140,16 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
   try {
     const body = JSON.parse(event.body || '{}') as CompareFacesRequestBody;
     const { sessionId, documentImage, similarityThreshold = 80 } = body;
+    const action = body.action || 'compare';
     tenant = body.tenant || 'unknown';
     webhookUrl = body.webhookUrl;
     geolocation = body.geolocation || null;
 
-    if (!sessionId || !documentImage) {
+    if (!documentImage) {
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ success: false, errorCode: 'MISSING_PARAMS', error: 'Missing sessionId or documentImage' }),
+        body: JSON.stringify({ success: false, errorCode: 'MISSING_PARAMS', error: 'Missing documentImage' }),
       };
     }
 
@@ -114,9 +166,56 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       };
     }
 
-    // 1. Fetch the reference image from the completed Liveness session
+    const documentData = parseDataURI(documentImage);
+
+    // Validate the document photo with Bedrock
+    console.log(`[CompareFaces] Validating document image with Bedrock (action=${action})...`);
+    const isValidDocument = await isValidIdentityDocument(documentData);
+
+    if (!isValidDocument) {
+      console.log(`[CompareFaces] Not a valid document for ${sourceIp}`);
+
+      if (action === 'compare') {
+        await notifyWebhook(webhookUrl, {
+          tenant,
+          service: 'compare-faces',
+          timestamp: new Date().toISOString(),
+          geolocation,
+          data: { success: false, errorCode: 'NOT_A_DOCUMENT', error: 'The provided image does not show a valid identity document' },
+        });
+      }
+
+      return {
+        statusCode: 422,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: false,
+          errorCode: 'NOT_A_DOCUMENT',
+          error: 'The provided image does not show a valid identity document',
+        }),
+      };
+    }
+
+    // action === 'validate' stops here — the document is valid, nothing more to do yet
+    if (action === 'validate') {
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, data: { isValidDocument: true } }),
+      };
+    }
+
+    // action === 'compare' continues with the full Liveness comparison flow
+    if (!sessionId) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: false, errorCode: 'MISSING_PARAMS', error: 'Missing sessionId' }),
+      };
+    }
+
     console.log('[CompareFaces] Fetching Liveness session results:', sessionId);
-    const livenessResult = await client.send(
+    const livenessResult = await rekognitionClient.send(
       new GetFaceLivenessSessionResultsCommand({ SessionId: sessionId })
     );
 
@@ -132,19 +231,17 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       };
     }
 
-    const documentData = parseDataURI(documentImage);
     const documentBytes = Buffer.from(documentData.data, 'base64');
     const referenceImageBase64 = Buffer.from(livenessResult.ReferenceImage.Bytes).toString('base64');
 
-    // 2. Compare the document photo against the Liveness reference image
     let compareResult;
     try {
       console.log('[CompareFaces] Calling Rekognition CompareFaces...');
-      compareResult = await client.send(
+      compareResult = await rekognitionClient.send(
         new CompareFacesCommand({
           SourceImage: { Bytes: documentBytes },
           TargetImage: { Bytes: livenessResult.ReferenceImage.Bytes },
-          SimilarityThreshold: 0, // return the best match regardless; we apply our own threshold below
+          SimilarityThreshold: 0,
         })
       );
     } catch (compareError) {

@@ -17,6 +17,7 @@ export interface OCRResponse {
   data?: {
     documentInfo: DocumentInfo;
   };
+  errorCode?: string;
   error?: string;
 }
 
@@ -37,29 +38,24 @@ export async function callOCRAPI(
   webhookUrl?: string,
   geolocation?: string | null
 ): Promise<OCRResponse> {
-  try {
-    const response = await fetch(`${API_ENDPOINT}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        frontImage,
-        backImage,
-        tenant,
-        webhookUrl,
-        geolocation,
-      }),
-    });
+  const response = await fetch(`${API_ENDPOINT}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      frontImage,
+      backImage,
+      tenant,
+      webhookUrl,
+      geolocation,
+    }),
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error (${response.status}): ${errorText}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('OCR API error:', error);
-    throw error;
-  }
+  // Even non-2xx responses (400, 422, 500...) carry a structured
+  // { success, errorCode, error } body from our Lambda, so we parse it
+  // instead of throwing on !response.ok. This lets the caller distinguish
+  // between specific error codes (e.g. NOT_A_DOCUMENT) instead of only
+  // seeing a generic thrown error.
+  return response.json();
 }

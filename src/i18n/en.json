@@ -20,6 +20,7 @@
     "gender": "Gender",
     "nationality": "Nationality",
     "processingError": "Error processing document",
+    "notADocument": "The images do not show a valid identity document. Please try again.",
     "steps": {
       "front": "Position DNI front side",
       "frontFreezed": "Front side captured",
@@ -48,8 +49,10 @@
     "noMatch": "Faces do not match",
     "similarity": "Similarity",
     "tryAgain": "Try Again",
+    "validatingDocument": "Validating document...",
     "errors": {
       "NO_FACE_DETECTED": "No face detected in one of the images. Please try again.",
+      "NOT_A_DOCUMENT": "The provided image does not show a valid identity document.",
       "IMAGE_TOO_LARGE": "Image is too large. Please try again.",
       "INVALID_IMAGE_FORMAT": "Invalid image format. Please try again.",
       "NO_LIVENESS_IMAGE": "Liveness verification did not produce a usable image.",

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
+  Alert,
   Button,
   Card,
   Flex,
@@ -13,7 +14,7 @@ import {
 import { FaceLivenessDetector } from '@aws-amplify/ui-react-liveness';
 import { AutoCamera } from './AutoCamera';
 import { createLivenessSession } from '../../services/liveness';
-import { compareFaces, CompareFacesResultData } from '../../services/compareFaces';
+import { compareFaces, validateDocument, CompareFacesResultData } from '../../services/compareFaces';
 import { useTranslation } from '../../i18n/i18n';
 import { livenessDictionary } from '../../i18n/livenessDictionary';
 import outputs from '../../../amplify_outputs.json';
@@ -25,7 +26,7 @@ interface CompareFacesVerificationProps {
   similarityThreshold: number;
 }
 
-type Step = 'document' | 'liveness' | 'comparing' | 'done';
+type Step = 'document' | 'validating' | 'documentInvalid' | 'documentPreview' | 'liveness' | 'comparing' | 'done';
 
 export function CompareFacesVerification({
   tenant,
@@ -67,9 +68,33 @@ export function CompareFacesVerification({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
-  const handleDocumentCapture = (photo: string) => {
+  const handleDocumentCapture = async (photo: string) => {
     setDocumentImage(photo);
+    setStep('validating');
+    setError(null);
+    try {
+      const response = await validateDocument(photo);
+      if (response.success && response.data?.isValidDocument) {
+        setStep('documentPreview');
+      } else {
+        const errorKey = response.errorCode ? `compareFaces.errors.${response.errorCode}` : null;
+        setError(errorKey ? t(errorKey) : (response.error || t('common.unknownError')));
+        setStep('documentInvalid');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.unknownError'));
+      setStep('documentInvalid');
+    }
+  };
+
+  const handleContinueToLiveness = () => {
     setStep('liveness');
+  };
+
+  const handleRetakeDocument = () => {
+    setDocumentImage(null);
+    setError(null);
+    setStep('document');
   };
 
   const handleAnalysisComplete = async () => {
@@ -119,6 +144,18 @@ export function CompareFacesVerification({
 
         <Divider />
 
+        {step === 'done' && result && (
+          <Alert variation={result.isMatch ? 'success' : 'error'}>
+            {result.isMatch ? t('compareFaces.match') : t('compareFaces.noMatch')}
+          </Alert>
+        )}
+
+        {error && (
+          <Alert variation="error" isDismissible onDismiss={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
         <Card variation="outlined">
           <Flex direction="column" gap="l" alignItems="center" padding="l">
             {step === 'document' && (
@@ -133,12 +170,58 @@ export function CompareFacesVerification({
               </Flex>
             )}
 
+            {step === 'validating' && (
+              <Flex direction="column" gap="m" alignItems="center">
+                <Loader size="large" />
+                <Text>{t('compareFaces.validatingDocument')}</Text>
+              </Flex>
+            )}
+
+            {step === 'documentInvalid' && documentImage && (
+              <Flex direction="column" gap="l" width="100%" alignItems="center">
+                <Badge>{t('compareFaces.documentStep')}</Badge>
+                <Image
+                  src={documentImage}
+                  alt="Document"
+                  width="200px"
+                  height="130px"
+                  borderRadius="small"
+                  objectFit="cover"
+                />
+                <Button variation="primary" onClick={handleRetakeDocument}>
+                  {t('ocr.retake')}
+                </Button>
+              </Flex>
+            )}
+
+            {step === 'documentPreview' && documentImage && (
+              <Flex direction="column" gap="l" width="100%" alignItems="center">
+                <Badge>{t('compareFaces.documentStep')}</Badge>
+                <Heading level={4}>✅ {t('ocr.photoCaptured')}</Heading>
+                <Image
+                  src={documentImage}
+                  alt="Document"
+                  width="200px"
+                  height="130px"
+                  borderRadius="small"
+                  objectFit="cover"
+                />
+                <Flex gap="m" wrap="wrap" justifyContent="center">
+                  <Button variation="primary" onClick={handleContinueToLiveness}>
+                    {t('ocr.continue')}
+                  </Button>
+                  <Button onClick={handleRetakeDocument}>
+                    {t('ocr.retake')}
+                  </Button>
+                </Flex>
+              </Flex>
+            )}
+
             {step === 'liveness' && (
               <Flex direction="column" gap="m" width="100%" alignItems="center">
                 <Badge variation="success">{t('compareFaces.livenessStep')}</Badge>
                 {error ? (
                   <Flex direction="column" gap="m" alignItems="center">
-                    <Text color="font.error">{error}</Text>
                     <Button variation="primary" onClick={handleRetry}>
                       {t('compareFaces.tryAgain')}
                     </Button>
@@ -172,13 +255,8 @@ export function CompareFacesVerification({
 
             {step === 'done' && (
               <Flex direction="column" gap="l" width="100%" alignItems="center">
-                {error ? (
-                  <Text color="font.error">{error}</Text>
-                ) : result ? (
+                {result && (
                   <>
-                    <Heading level={4}>
-                      {result.isMatch ? `✅ ${t('compareFaces.match')}` : `⚠️ ${t('compareFaces.noMatch')}`}
-                    </Heading>
                     <Text>
                       {t('compareFaces.similarity')}: {result.similarity.toFixed(2)}%
                     </Text>
@@ -193,7 +271,7 @@ export function CompareFacesVerification({
                       />
                     )}
                   </>
-                ) : null}
+                )}
                 <Button variation="primary" onClick={handleRetry}>
                   {t('compareFaces.tryAgain')}
                 </Button>

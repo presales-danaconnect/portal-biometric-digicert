@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
+  Alert,
   Button,
   Card,
   Flex,
@@ -103,15 +104,22 @@ export function LivenessCheck({
 
         <Divider />
 
+        {result && (
+          <Alert variation={isLive ? 'success' : 'error'}>
+            {isLive ? t('liveness.success') : t('liveness.failed')}
+          </Alert>
+        )}
+
+        {error && !result && (
+          <Alert variation="error" isDismissible onDismiss={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
         <Card variation="outlined">
           <Flex direction="column" gap="l" alignItems="center" padding="l">
             {result ? (
               <Flex direction="column" gap="l" width="100%" alignItems="center">
-                <Heading level={4}>
-                  {isLive
-                    ? `✅ ${t('liveness.success')}`
-                    : `⚠️ ${t('liveness.failed')}`}
-                </Heading>
                 <Text>
                   {t('liveness.confidence')}: {result.confidence?.toFixed(2)}%
                 </Text>
@@ -131,7 +139,6 @@ export function LivenessCheck({
               </Flex>
             ) : error ? (
               <Flex direction="column" gap="m" alignItems="center">
-                <Text color="font.error">{error}</Text>
                 <Button variation="primary" onClick={handleRetry}>
                   {t('liveness.tryAgain')}
                 </Button>

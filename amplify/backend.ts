@@ -23,6 +23,11 @@ backend.ocrHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 backend.livenessHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 backend.compareFacesHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 
+const BEDROCK_MODEL_RESOURCES = [
+  'arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
+  'arn:aws:bedrock:us-east-1:*:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0',
+];
+
 // Create Function URL for OCR Handler
 const ocrFunctionUrl = backend.ocrHandler.resources.lambda.addFunctionUrl({
   authType: FunctionUrlAuthType.NONE,
@@ -32,10 +37,7 @@ const ocrFunctionUrl = backend.ocrHandler.resources.lambda.addFunctionUrl({
 backend.ocrHandler.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['bedrock:InvokeModel'],
-    resources: [
-      'arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
-      'arn:aws:bedrock:us-east-1:*:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0',
-    ],
+    resources: BEDROCK_MODEL_RESOURCES,
   })
 );
 
@@ -81,6 +83,16 @@ backend.compareFacesHandler.resources.lambda.addToRolePolicy(
       'rekognition:CompareFaces',
     ],
     resources: ['*'],
+  })
+);
+
+// Grant Bedrock InvokeModel permission to the Compare Faces Lambda
+// (used to validate the document photo is a real identity document before
+// spending a Rekognition CompareFaces call on it)
+backend.compareFacesHandler.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['bedrock:InvokeModel'],
+    resources: BEDROCK_MODEL_RESOURCES,
   })
 );
 

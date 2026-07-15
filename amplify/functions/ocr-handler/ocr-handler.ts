@@ -65,15 +65,16 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
     };
   }
 
+  let tenant = 'unknown';
+  let webhookUrl: string | undefined;
+  let geolocation: string | null = null;
+
   try {
     const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
     const body = event.body;
 
     let frontImage: string = '';
     let backImage: string = '';
-    let tenant: string = 'unknown';
-    let webhookUrl: string | undefined;
-    let geolocation: string | null = null;
 
     if (contentType.includes('application/json')) {
       const parsed = JSON.parse(body || '{}');
@@ -121,16 +122,38 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
 
     console.log(`[OCR] Processing request from ${sourceIp}: front=${Math.round(frontSizeBytes/1024)}KB, back=${Math.round(backSizeBytes/1024)}KB`);
 
-    const result = await extractDocumentInfo(frontImage, backImage);
+    const extraction = await extractDocumentInfo(frontImage, backImage);
 
-    console.log(`[OCR] Success for ${sourceIp}:`, JSON.stringify(result));
+    if (!extraction.isValidDocument) {
+      console.log(`[OCR] Not a valid document for ${sourceIp}`);
+
+      await notifyWebhook(webhookUrl, {
+        tenant,
+        service: 'ocr',
+        timestamp: new Date().toISOString(),
+        geolocation,
+        data: { success: false, errorCode: 'NOT_A_DOCUMENT', error: 'The provided images do not show a valid identity document' },
+      });
+
+      return {
+        statusCode: 422,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: false,
+          errorCode: 'NOT_A_DOCUMENT',
+          error: 'The provided images do not show a valid identity document',
+        }),
+      };
+    }
+
+    console.log(`[OCR] Success for ${sourceIp}:`, JSON.stringify(extraction.documentInfo));
 
     await notifyWebhook(webhookUrl, {
       tenant,
       service: 'ocr',
       timestamp: new Date().toISOString(),
       geolocation,
-      data: result,
+      data: extraction.documentInfo,
     });
 
     return {
@@ -138,7 +161,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       headers: corsHeaders,
       body: JSON.stringify({
         success: true,
-        data: { documentInfo: result }
+        data: { documentInfo: extraction.documentInfo }
       }),
     };
   } catch (error) {
@@ -148,13 +171,19 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       headers: corsHeaders,
       body: JSON.stringify({
         success: false,
+        errorCode: 'GENERIC_ERROR',
         error: error instanceof Error ? error.message : 'Unknown error'
       }),
     };
   }
 };
 
-async function extractDocumentInfo(frontImage: string, backImage: string): Promise<DocumentInfo> {
+interface ExtractionResult {
+  isValidDocument: boolean;
+  documentInfo: DocumentInfo | null;
+}
+
+async function extractDocumentInfo(frontImage: string, backImage: string): Promise<ExtractionResult> {
   const frontData = parseDataURI(frontImage);
   const backData = parseDataURI(backImage);
 
@@ -204,32 +233,34 @@ async function extractDocumentInfo(frontImage: string, backImage: string): Promi
   return parseDocumentInfo(extractedText);
 }
 
-function parseDocumentInfo(text: string): DocumentInfo {
+function parseDocumentInfo(text: string): ExtractionResult {
   const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
   const jsonText = jsonMatch ? jsonMatch[1] : text;
 
   try {
     const parsed = JSON.parse(jsonText.trim());
+
+    if (parsed.isValidDocument === false) {
+      return { isValidDocument: false, documentInfo: null };
+    }
+
     return {
-      documentNumber: parsed.documentNumber || '',
-      country: parsed.country || '',
-      documentType: parsed.documentType || '',
-      birthDate: parsed.birthDate || '',
-      firstName: parsed.firstName || '',
-      lastName: parsed.lastName || '',
-      expirationDate: parsed.expirationDate || '',
-      gender: parsed.gender,
-      nationality: parsed.nationality,
+      isValidDocument: true,
+      documentInfo: {
+        documentNumber: parsed.documentNumber || '',
+        country: parsed.country || '',
+        documentType: parsed.documentType || '',
+        birthDate: parsed.birthDate || '',
+        firstName: parsed.firstName || '',
+        lastName: parsed.lastName || '',
+        expirationDate: parsed.expirationDate || '',
+        gender: parsed.gender,
+        nationality: parsed.nationality,
+      },
     };
   } catch {
-    return {
-      documentNumber: '',
-      country: '',
-      documentType: '',
-      birthDate: '',
-      firstName: '',
-      lastName: '',
-      expirationDate: '',
-    };
+    // If Claude's response can't be parsed at all, treat it conservatively
+    // as "not a valid document" rather than returning empty-but-successful data.
+    return { isValidDocument: false, documentInfo: null };
   }
 }

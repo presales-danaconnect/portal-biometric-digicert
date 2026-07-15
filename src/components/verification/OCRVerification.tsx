@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import {
+  Alert,
   Button,
   Card,
   Flex,
@@ -28,6 +29,7 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
   const [ocrStep, setOcrStep] = useState<'front' | 'frontFreezed' | 'back' | 'backFreezed' | 'done'>('front');
   const [ocrResult, setOcrResult] = useState<OCRResponse | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleOCRCapture = useCallback((photo: string) => {
     if (ocrStep === 'front') {
@@ -61,15 +63,18 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
     if (!frontImage || !backImage) return;
 
     setIsProcessing(true);
+    setErrorMessage(null);
     try {
       const result = await callOCRAPI(frontImage, backImage, tenant, webhookUrl, geolocation);
       if (result.success && result.data) {
         setOcrResult(result);
+      } else if (result.errorCode === 'NOT_A_DOCUMENT') {
+        setErrorMessage(t('ocr.notADocument'));
       } else {
-        alert(`${t('common.error')}: ` + (result.error || t('common.unknownError')));
+        setErrorMessage(result.error || t('common.unknownError'));
       }
     } catch (error) {
-      alert(`${t('ocr.processingError')}: ` + (error instanceof Error ? error.message : t('common.unknownError')));
+      setErrorMessage(error instanceof Error ? error.message : t('common.unknownError'));
     } finally {
       setIsProcessing(false);
     }
@@ -98,6 +103,18 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
         </Flex>
 
         <Divider />
+
+        {errorMessage && (
+          <Alert variation="error" isDismissible onDismiss={() => setErrorMessage(null)}>
+            {errorMessage}
+          </Alert>
+        )}
+
+        {ocrResult && ocrResult.data && (
+          <Alert variation="success">
+            {t('ocr.results')}
+          </Alert>
+        )}
 
         <Card variation="outlined">
           <Flex direction="column" gap="l" alignItems="center" padding="l">
@@ -181,6 +198,7 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
                   setBackImage(null);
                   setOcrStep('front');
                   setOcrResult(null);
+                  setErrorMessage(null);
                 }}
               >
                 {t('ocr.startOver')}

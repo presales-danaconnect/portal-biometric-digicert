@@ -20,6 +20,7 @@
     "gender": "Género",
     "nationality": "Nacionalidad",
     "processingError": "Error al procesar el documento",
+    "notADocument": "Las imágenes no muestran un documento de identidad válido. Intenta de nuevo.",
     "steps": {
       "front": "Posiciona el frente del documento",
       "frontFreezed": "Frente capturado",
@@ -48,8 +49,10 @@
     "noMatch": "Los rostros no coinciden",
     "similarity": "Similitud",
     "tryAgain": "Intentar de Nuevo",
+    "validatingDocument": "Validando documento...",
     "errors": {
       "NO_FACE_DETECTED": "No se detectó ningún rostro en una de las imágenes. Intenta de nuevo.",
+      "NOT_A_DOCUMENT": "La imagen proporcionada no muestra un documento de identidad válido.",
       "IMAGE_TOO_LARGE": "La imagen es demasiado grande. Intenta de nuevo.",
       "INVALID_IMAGE_FORMAT": "Formato de imagen inválido. Intenta de nuevo.",
       "NO_LIVENESS_IMAGE": "La verificación de vida no generó una imagen utilizable.",

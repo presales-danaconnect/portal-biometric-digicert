@@ -13,6 +13,30 @@ export interface CompareFacesResponse {
   error?: string;
 }
 
+export interface ValidateDocumentResponse {
+  success: boolean;
+  data?: { isValidDocument: boolean };
+  errorCode?: string;
+  error?: string;
+}
+
+/**
+ * Validates that a captured photo shows a real identity document with a
+ * visible face, before running the full (slower) Liveness + compare flow.
+ */
+export async function validateDocument(documentImage: string): Promise<ValidateDocumentResponse> {
+  const response = await fetch(API_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'validate',
+      documentImage,
+    }),
+  });
+
+  return response.json();
+}
+
 export async function compareFaces(
   sessionId: string,
   documentImage: string,
@@ -25,6 +49,7 @@ export async function compareFaces(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      action: 'compare',
       sessionId,
       documentImage,
       tenant,
