@@ -4,7 +4,6 @@ import {
   Card,
   Flex,
   Heading,
-  Text,
   Badge,
   Divider,
   Image,
