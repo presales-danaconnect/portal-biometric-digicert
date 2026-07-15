@@ -13,6 +13,8 @@ import {
 import { FaceLivenessDetector } from '@aws-amplify/ui-react-liveness';
 import { createLivenessSession, getLivenessResults, LivenessResultData } from '../../services/liveness';
 import { useTranslation } from '../../i18n/i18n';
+import { livenessDictionary } from '../../i18n/livenessDictionary';
+import outputs from '../../../amplify_outputs.json';
 
 interface LivenessCheckProps {
   tenant: string;
@@ -27,7 +29,7 @@ export function LivenessCheck({
   geolocation,
   confidenceThreshold,
 }: LivenessCheckProps) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [result, setResult] = useState<LivenessResultData | null>(null);
@@ -142,7 +144,8 @@ export function LivenessCheck({
             ) : sessionId ? (
               <FaceLivenessDetector
                 sessionId={sessionId}
-                region="us-east-1"
+                region={outputs.auth.aws_region}
+                displayText={livenessDictionary[lang]}
                 onAnalysisComplete={handleAnalysisComplete}
                 onError={(err) => {
                   console.error('FaceLivenessDetector error:', err);
