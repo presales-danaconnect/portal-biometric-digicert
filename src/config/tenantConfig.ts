@@ -9,6 +9,7 @@ export interface TenantConfig {
   footerWebsiteUrl: string;
   webhookUrl: string;
   livenessConfidenceThreshold: number;
+  compareFacesSimilarityThreshold: number;
   colors: {
     primary: string;
     headerBackground: string;

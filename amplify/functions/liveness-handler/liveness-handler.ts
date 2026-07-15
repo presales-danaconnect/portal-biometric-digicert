@@ -5,23 +5,9 @@ import {
   GetFaceLivenessSessionResultsCommand,
 } from '@aws-sdk/client-rekognition';
 import { notifyWebhook } from '../shared/webhookNotifier';
+import { getCorsHeaders } from '../shared/cors';
 
 const client = new RekognitionClient({ region: process.env.AWS_REGION || 'us-east-1' });
-
-const ALLOWED_ORIGINS = [
-  'http://localhost:5173',
-  'https://main.d21x455s6ork0e.amplifyapp.com',
-];
-
-function getCorsHeaders(origin: string): Record<string, string> {
-  const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*');
-  return {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': isAllowedOrigin ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key',
-  };
-}
 
 interface CreateSessionRequestBody {
   action: 'create';

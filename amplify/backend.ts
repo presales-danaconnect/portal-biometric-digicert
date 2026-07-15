@@ -2,6 +2,7 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { ocrHandler } from './functions/ocr-handler/resource';
 import { livenessHandler } from './functions/liveness-handler/resource';
+import { compareFacesHandler } from './functions/compare-faces-handler/resource';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
@@ -9,7 +10,18 @@ const backend = defineBackend({
   auth,
   ocrHandler,
   livenessHandler,
+  compareFacesHandler,
 });
+
+// Production domain for CORS, read from environment — change it in
+// Amplify Console → App settings → Environment variables (PRODUCTION_ORIGIN)
+// without touching any code. Falls back to the current domain for local
+// sandbox runs where that variable isn't set.
+const PRODUCTION_ORIGIN = process.env.PRODUCTION_ORIGIN || 'https://main.d21x455s6ork0e.amplifyapp.com';
+
+backend.ocrHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
+backend.livenessHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
+backend.compareFacesHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 
 // Create Function URL for OCR Handler
 const ocrFunctionUrl = backend.ocrHandler.resources.lambda.addFunctionUrl({
@@ -55,46 +67,30 @@ backend.auth.resources.unauthenticatedUserIamRole.addToPrincipalPolicy(
   })
 );
 
+// Create Function URL for Compare Faces Handler
+const compareFacesFunctionUrl = backend.compareFacesHandler.resources.lambda.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+});
+
+// Grant Rekognition permissions to the Compare Faces Lambda
+// (fetches the Liveness reference image and compares it against the document photo)
+backend.compareFacesHandler.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: [
+      'rekognition:GetFaceLivenessSessionResults',
+      'rekognition:CompareFaces',
+    ],
+    resources: ['*'],
+  })
+);
+
 // Expose Function URLs in amplify_outputs.json
 backend.addOutput({
   custom: {
     ocrApiUrl: ocrFunctionUrl.url,
     livenessApiUrl: livenessFunctionUrl.url,
+    compareFacesApiUrl: compareFacesFunctionUrl.url,
   },
 });
 
-/*
- * RATE LIMITING NOTE (IMPORTANT):
- * 
- * Amplify Gen 2's `defineFunction` creates a Lambda with Function URL (not API Gateway).
- * For production rate limiting with Usage Plans and API Keys, you have these options:
- * 
- * OPTION 1: Use AWS WAF with Lambda Function URL (RECOMMENDED)
- *   - Deploy WAF with rate limiting rules
- *   - Associate WAF with the Function URL
- *   - AWS WAF supports:
- *     - Rate-based rules (e.g., 100 requests per 5 minutes)
- *     - Managed rules for common attacks
- *     - Custom rule matching
- * 
- * OPTION 2: Use API Gateway instead of Function URL
- *   - Create REST API with API Gateway
- *   - Configure Usage Plans with rate/quota limits
- *   - More control but more complex setup
- * 
- * OPTION 3: Use Amplify Console settings
- *   - Configure protection features in Amplify Console
- *   - Basic throttling available in hosting settings
- * 
- * Current protections implemented:
- * - Reserved concurrency: 5 concurrent executions (resource.ts)
- * - Payload size limit: 5MB per image (handler.ts)
- * - CloudWatch logging with source IP for audit (handler.ts)
- * - Token validation hook ready for future API key auth (handler.ts)
- * 
- * To add AWS WAF rate limiting:
- * 1. Deploy the function first: npx amplify sandbox push
- * 2. Go to AWS Console > WAF > Create web ACL
- * 3. Associate with the Lambda Function URL
- * 4. Add rate-based rule: 100 requests per 5 minutes per IP
- */
+// See docs/rate-limiting.md for notes on Function URL rate limiting options.

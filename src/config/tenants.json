@@ -6,6 +6,7 @@
     "footerWebsiteUrl": "https://example_company.com",
     "webhookUrl": "https://cy3yq3wclzjqswhhjuuks5seam0mykns.lambda-url.us-east-1.on.aws/",
     "livenessConfidenceThreshold": 80,
+    "compareFacesSimilarityThreshold": 80,
     "colors": {
       "primary": "#0C6069",
       "headerBackground": "#0C6069",
@@ -25,6 +26,7 @@
     "footerWebsiteUrl": "https://www.danaconnect.com/",
     "webhookUrl": "https://cy3yq3wclzjqswhhjuuks5seam0mykns.lambda-url.us-east-1.on.aws/",
     "livenessConfidenceThreshold": 80,
+    "compareFacesSimilarityThreshold": 80,
     "colors": {
       "primary": "#ef4b27",
       "headerBackground": "#ffffff",
@@ -44,6 +46,7 @@
     "footerWebsiteUrl": "https://www.digicert.bo",
     "webhookUrl": "https://cy3yq3wclzjqswhhjuuks5seam0mykns.lambda-url.us-east-1.on.aws/",
     "livenessConfidenceThreshold": 80,
+    "compareFacesSimilarityThreshold": 80,
     "colors": {
       "primary": "#0a1a3c",
       "headerBackground": "#ffffff",

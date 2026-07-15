@@ -39,16 +39,26 @@
   },
   "compareFaces": {
     "title": "Face Comparison",
-    "dniPhoto": "DNI Photo",
-    "facePhoto": "Face Photo",
-    "compare": "Compare with AWS Rekognition",
-    "comparingAlert": "Comparing faces with AWS Rekognition...",
-    "steps": {
-      "dni": "Position DNI in rectangle",
-      "dniFreezed": "DNI captured",
-      "face": "Position your face in oval",
-      "faceFreezed": "Face captured",
-      "done": "Ready to compare"
+    "documentStep": "Document Photo",
+    "documentGuideText": "Position your ID document in the rectangle",
+    "livenessStep": "Face Verification",
+    "creatingSession": "Preparing verification...",
+    "comparing": "Comparing faces...",
+    "match": "Faces match",
+    "noMatch": "Faces do not match",
+    "similarity": "Similarity",
+    "tryAgain": "Try Again",
+    "errors": {
+      "NO_FACE_DETECTED": "No face detected in one of the images. Please try again.",
+      "IMAGE_TOO_LARGE": "Image is too large. Please try again.",
+      "INVALID_IMAGE_FORMAT": "Invalid image format. Please try again.",
+      "NO_LIVENESS_IMAGE": "Liveness verification did not produce a usable image.",
+      "ACCESS_DENIED": "Not authorized to perform this verification.",
+      "INVALID_S3_OBJECT": "Unable to access the reference image.",
+      "THROUGHPUT_EXCEEDED": "Too many requests. Please wait a moment and try again.",
+      "THROTTLING": "Service temporarily unavailable. Please try again.",
+      "INTERNAL_SERVER_ERROR": "A service issue occurred. Please try again.",
+      "GENERIC_ERROR": "Something went wrong. Please try again."
     }
   },
   "home": {

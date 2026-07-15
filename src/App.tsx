@@ -47,11 +47,14 @@ function App() {
           />
         );
       case 'compare-faces':
-        return <CompareFacesVerification
-          tenant={tenant}
-          webhookUrl={tenantConfig.webhookUrl}
-          geolocation={geolocation}
-        />;
+        return (
+          <CompareFacesVerification
+            tenant={tenant}
+            webhookUrl={tenantConfig.webhookUrl}
+            geolocation={geolocation}
+            similarityThreshold={tenantConfig.compareFacesSimilarityThreshold}
+          />
+        );
 
       default:
         return (

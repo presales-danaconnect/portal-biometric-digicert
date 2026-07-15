@@ -1,68 +1,111 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Button,
   Card,
   Flex,
   Heading,
+  Text,
   Badge,
   Divider,
+  Loader,
   Image,
 } from '@aws-amplify/ui-react';
+import { FaceLivenessDetector } from '@aws-amplify/ui-react-liveness';
 import { AutoCamera } from './AutoCamera';
+import { createLivenessSession } from '../../services/liveness';
+import { compareFaces, CompareFacesResultData } from '../../services/compareFaces';
 import { useTranslation } from '../../i18n/i18n';
+import { livenessDictionary } from '../../i18n/livenessDictionary';
+import outputs from '../../../amplify_outputs.json';
 
 interface CompareFacesVerificationProps {
   tenant: string;
   webhookUrl?: string;
   geolocation?: string | null;
+  similarityThreshold: number;
 }
 
-export function CompareFacesVerification({ tenant }: CompareFacesVerificationProps) {
-  const { t } = useTranslation();
+type Step = 'document' | 'liveness' | 'comparing' | 'done';
 
-  const [dniImage, setDniImage] = useState<string | null>(null);
-  const [faceImage, setFaceImage] = useState<string | null>(null);
-  const [compareStep, setCompareStep] = useState<'dni' | 'dniFreezed' | 'face' | 'faceFreezed' | 'done'>('dni');
+export function CompareFacesVerification({
+  tenant,
+  webhookUrl,
+  geolocation,
+  similarityThreshold,
+}: CompareFacesVerificationProps) {
+  const { t, lang } = useTranslation();
 
-  const handleCompareCapture = useCallback((photo: string) => {
-    if (compareStep === 'dni') {
-      setDniImage(photo);
-      setCompareStep('dniFreezed');
-    } else if (compareStep === 'face') {
-      setFaceImage(photo);
-      setCompareStep('faceFreezed');
+  const [step, setStep] = useState<Step>('document');
+  const [documentImage, setDocumentImage] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [result, setResult] = useState<CompareFacesResultData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const startLivenessSession = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await createLivenessSession();
+      if (response.success && response.sessionId) {
+        setSessionId(response.sessionId);
+      } else {
+        setError(response.error || t('common.unknownError'));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.unknownError'));
+    } finally {
+      setIsLoading(false);
     }
-  }, [compareStep]);
+  }, [t]);
 
-  const handleContinueCompare = () => {
-    if (compareStep === 'dniFreezed') {
-      setCompareStep('face');
-    } else if (compareStep === 'faceFreezed') {
-      setCompareStep('done');
+  // Al entrar al paso de liveness, crea la sesión automáticamente
+  useEffect(() => {
+    if (step === 'liveness' && !sessionId && !error) {
+      startLivenessSession();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  const handleDocumentCapture = (photo: string) => {
+    setDocumentImage(photo);
+    setStep('liveness');
+  };
+
+  const handleAnalysisComplete = async () => {
+    if (!sessionId || !documentImage) return;
+    setStep('comparing');
+    setIsLoading(true);
+    try {
+      const response = await compareFaces(
+        sessionId,
+        documentImage,
+        tenant,
+        webhookUrl,
+        geolocation,
+        similarityThreshold
+      );
+      if (response.success && response.data) {
+        setResult(response.data);
+      } else {
+        const errorKey = response.errorCode ? `compareFaces.errors.${response.errorCode}` : null;
+        setError(errorKey ? t(errorKey) : (response.error || t('common.unknownError')));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.unknownError'));
+    } finally {
+      setIsLoading(false);
+      setStep('done');
     }
   };
 
-  const handleRetakeCompare = () => {
-    if (compareStep === 'dniFreezed') {
-      setDniImage(null);
-      setCompareStep('dni');
-    } else if (compareStep === 'faceFreezed') {
-      setFaceImage(null);
-      setCompareStep('face');
-    }
+  const handleRetry = () => {
+    setStep('document');
+    setDocumentImage(null);
+    setSessionId(null);
+    setResult(null);
+    setError(null);
   };
-
-  const stepMessages = {
-    dni: t('compareFaces.steps.dni'),
-    dniFreezed: t('compareFaces.steps.dniFreezed'),
-    face: t('compareFaces.steps.face'),
-    faceFreezed: t('compareFaces.steps.faceFreezed'),
-    done: t('compareFaces.steps.done'),
-  };
-
-  const currentMessage = stepMessages[compareStep];
-  const showCamera = compareStep === 'dni' || compareStep === 'face';
-  const showImage = compareStep === 'dniFreezed' || compareStep === 'faceFreezed' || compareStep === 'done';
 
   return (
     <Card variation="elevated" padding="xl" width="100%">
@@ -78,89 +121,86 @@ export function CompareFacesVerification({ tenant }: CompareFacesVerificationPro
 
         <Card variation="outlined">
           <Flex direction="column" gap="l" alignItems="center" padding="l">
-            {showCamera ? (
-              <AutoCamera
-                guideType={compareStep === 'dni' ? 'rectangle' : 'circle'}
-                guideText={currentMessage}
-                maxSeconds={3}
-                onCapture={handleCompareCapture}
-              />
-            ) : showImage ? (
-              <Flex direction="column" gap="l" width="100%">
-                <Heading level={4}>✅ {t('ocr.photoCaptured')}</Heading>
+            {step === 'document' && (
+              <Flex direction="column" gap="m" width="100%" alignItems="center">
+                <Badge>{t('compareFaces.documentStep')}</Badge>
+                <AutoCamera
+                  guideType="rectangle"
+                  guideText={t('compareFaces.documentGuideText')}
+                  maxSeconds={5}
+                  onCapture={handleDocumentCapture}
+                />
+              </Flex>
+            )}
 
-                <Flex direction="row" gap="l" wrap="wrap" justifyContent="center">
-                  {dniImage && (compareStep === 'dniFreezed' || compareStep === 'faceFreezed' || compareStep === 'done') && (
-                    <Flex direction="column" gap="xs" alignItems="center">
-                      <Badge variation="info">{t('compareFaces.dniPhoto')}</Badge>
+            {step === 'liveness' && (
+              <Flex direction="column" gap="m" width="100%" alignItems="center">
+                <Badge variation="success">{t('compareFaces.livenessStep')}</Badge>
+                {error ? (
+                  <Flex direction="column" gap="m" alignItems="center">
+                    <Text color="font.error">{error}</Text>
+                    <Button variation="primary" onClick={handleRetry}>
+                      {t('compareFaces.tryAgain')}
+                    </Button>
+                  </Flex>
+                ) : isLoading && !sessionId ? (
+                  <Flex direction="column" gap="m" alignItems="center">
+                    <Loader size="large" />
+                    <Text>{t('compareFaces.creatingSession')}</Text>
+                  </Flex>
+                ) : sessionId ? (
+                  <FaceLivenessDetector
+                    sessionId={sessionId}
+                    region={outputs.auth.aws_region}
+                    displayText={livenessDictionary[lang]}
+                    onAnalysisComplete={handleAnalysisComplete}
+                    onError={(err) => {
+                      console.error('FaceLivenessDetector error:', err);
+                      setError(t('liveness.failed'));
+                    }}
+                  />
+                ) : null}
+              </Flex>
+            )}
+
+            {step === 'comparing' && (
+              <Flex direction="column" gap="m" alignItems="center">
+                <Loader size="large" />
+                <Text>{t('compareFaces.comparing')}</Text>
+              </Flex>
+            )}
+
+            {step === 'done' && (
+              <Flex direction="column" gap="l" width="100%" alignItems="center">
+                {error ? (
+                  <Text color="font.error">{error}</Text>
+                ) : result ? (
+                  <>
+                    <Heading level={4}>
+                      {result.isMatch ? `✅ ${t('compareFaces.match')}` : `⚠️ ${t('compareFaces.noMatch')}`}
+                    </Heading>
+                    <Text>
+                      {t('compareFaces.similarity')}: {result.similarity.toFixed(2)}%
+                    </Text>
+                    {documentImage && (
                       <Image
-                        src={dniImage}
-                        alt="DNI"
+                        src={documentImage}
+                        alt="Document"
                         width="150px"
                         height="100px"
                         borderRadius="small"
                         objectFit="cover"
                       />
-                    </Flex>
-                  )}
-
-                  {faceImage && (compareStep === 'faceFreezed' || compareStep === 'done') && (
-                    <Flex direction="column" gap="xs" alignItems="center">
-                      <Badge variation="success">{t('compareFaces.facePhoto')}</Badge>
-                      <Image
-                        src={faceImage}
-                        alt="Face"
-                        width="150px"
-                        height="150px"
-                        borderRadius="small"
-                        objectFit="cover"
-                      />
-                    </Flex>
-                  )}
-                </Flex>
-
-                {(compareStep === 'dniFreezed' || compareStep === 'faceFreezed') && (
-                  <Flex gap="m" wrap="wrap" justifyContent="center">
-                    <Button variation="primary" onClick={handleContinueCompare}>
-                      {t('ocr.continue')}
-                    </Button>
-                    <Button onClick={handleRetakeCompare}>
-                      {t('ocr.retake')}
-                    </Button>
-                  </Flex>
-                )}
+                    )}
+                  </>
+                ) : null}
+                <Button variation="primary" onClick={handleRetry}>
+                  {t('compareFaces.tryAgain')}
+                </Button>
               </Flex>
-            ) : null}
+            )}
           </Flex>
         </Card>
-
-        {compareStep === 'done' && (
-          <Flex gap="m" wrap="wrap" justifyContent="center">
-            <Button
-              variation="primary"
-              size="large"
-              onClick={() => {
-                alert(t('compareFaces.comparingAlert'));
-                // TODO: cuando el backend real de compare-faces esté listo,
-                // reemplazar este alert por la llamada real y notificar
-                // el webhook desde esa Lambda, igual que hace ocr-handler.
-              }}
-              isDisabled={!dniImage || !faceImage}
-            >
-              {t('compareFaces.compare')}
-            </Button>
-            <Button
-              variation="warning"
-              onClick={() => {
-                setDniImage(null);
-                setFaceImage(null);
-                setCompareStep('dni');
-              }}
-            >
-              {t('ocr.startOver')}
-            </Button>
-          </Flex>
-        )}
       </Flex>
     </Card>
   );

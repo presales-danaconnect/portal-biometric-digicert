@@ -2,14 +2,11 @@ import { type Handler, type APIGatewayProxyEventV2, type APIGatewayProxyResultV2
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { OCR_PROMPT } from './ocrPrompt';
 import { notifyWebhook } from '../shared/webhookNotifier';
+import { getCorsHeaders } from '../shared/cors';
 
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_ORIGINS = [
-  'http://localhost:5173',
-  'https://main.d21x455s6ork0e.amplifyapp.com',
-];
 
 interface DocumentInfo {
   documentNumber: string;
@@ -26,16 +23,6 @@ interface DocumentInfo {
 interface Base64Data {
   data: string;
   mediaType: string;
-}
-
-function getCorsHeaders(origin: string): Record<string, string> {
-  const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*');
-  return {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': isAllowedOrigin ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key',
-  };
 }
 
 function parseDataURI(dataURI: string): Base64Data {
