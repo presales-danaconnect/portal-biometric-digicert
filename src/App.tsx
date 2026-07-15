@@ -31,13 +31,27 @@ function App() {
   const renderService = () => {
     switch (service) {
       case 'ocr':
-        return <OCRVerification tenant={tenant} webhookUrl={tenantConfig.webhookUrl} geolocation={geolocation} />;
+        return <OCRVerification
+          tenant={tenant}
+          webhookUrl={tenantConfig.webhookUrl}
+          geolocation={geolocation}
+        />;
 
       case 'liveness':
-        return <LivenessCheck tenant={tenant} webhookUrl={tenantConfig.webhookUrl} geolocation={geolocation} />;
-
+        return (
+          <LivenessCheck
+            tenant={tenant}
+            webhookUrl={tenantConfig.webhookUrl}
+            geolocation={geolocation}
+            confidenceThreshold={tenantConfig.livenessConfidenceThreshold}
+          />
+        );
       case 'compare-faces':
-        return <CompareFacesVerification tenant={tenant} webhookUrl={tenantConfig.webhookUrl} geolocation={geolocation} />;
+        return <CompareFacesVerification
+          tenant={tenant}
+          webhookUrl={tenantConfig.webhookUrl}
+          geolocation={geolocation}
+        />;
 
       default:
         return (
