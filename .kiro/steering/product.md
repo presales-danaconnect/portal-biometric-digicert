@@ -28,10 +28,11 @@ Identity Verification SDK is a SaaS platform that allows businesses to embed ide
      - `ocr`: Document verification and text extraction
      - `compare-faces`: Face matching between two images
    - `tenant`: Client business identifier (NOT called "company_id" for security)
+   - `lang`: Optional, `en` or `es` (defaults to `en`)
 
 3. **Tenant Resolution**:
    - System looks up the tenant configuration
-   - Retrieves the configured `webhook_url` (currently from environment variables, not database)
+   - Retrieves the configured `webhookUrl` from `src/config/tenants.json` (currently a committed JSON file, not a database)
 
 4. **Service Execution**:
    - Executes the corresponding AWS service:

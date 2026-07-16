@@ -5,249 +5,70 @@ inclusion: always
 # UI Standards & Design Guidelines
 
 ## Design Philosophy
-- **Minimalist**: Clean, uncluttered interfaces
-- **Modern**: Contemporary design patterns
-- **Professional**: Trustworthy appearance for identity verification
-- **Neutral**: Colors that don't clash with client branding
-- **Responsive**: Mobile-first, works on all device sizes
+- Minimalist, professional, trustworthy appearance for identity verification
+- Neutral base design that adapts per tenant via configurable colors
+- Mobile-first, works across device sizes
+- Camera-first: every capture step is done live through the device camera, never file upload
+
+## Component Library
+
+All UI is built with @aws-amplify/ui-react components, not raw HTML/CSS and not Tailwind. Common components used throughout: Card (variation="elevated" for the main card, variation="outlined" for nested content areas), Flex, Heading, Text, Badge, Button (variation="primary" / "warning" / default), Divider, Loader, Image, Alert.
+
+FaceLivenessDetector comes from @aws-amplify/ui-react-liveness and renders its own internal camera UI; we only control its displayText strings (see livenessDictionary.ts) and its container.
 
 ## Layout Structure
 
 ### Fixed 3-Section Layout
-```
-┌─────────────────────────────────┐
-│          HEADER                 │
-│  (Optional per tenant)          │
-├─────────────────────────────────┤
-│                                 │
-│          CONTENT                │
-│  (Service-specific UI)          │
-│                                 │
-├─────────────────────────────────┤
-│          FOOTER                 │
-│  (Optional per tenant)          │
-└─────────────────────────────────┘
-```
+Header (always rendered) -> Content (service-specific) -> Footer (always rendered). There is no "enabled/disabled" flag for Header or Footer; every tenant always shows both, configured via tenants.json (a tenant can pass an empty headerTitle to effectively hide the text and show only a logo).
 
-### Header Configuration (Optional)
-- **When to Show**: Based on tenant configuration `header_enabled: true`
-- **Content Options**:
-  - Logo (from `logo_url`)
-  - Title/Display Name (from `display_name`)
-  - Empty (if no configuration provided)
-- **Behavior**: If not configured, header area collapses completely
+### Tenant Configuration (real schema, in src/config/tenants.json)
+Each tenant entry provides:
+- headerTitle, headerLogoUrl
+- footerPrivacyPolicyUrl, footerWebsiteUrl
+- webhookUrl
+- livenessConfidenceThreshold, compareFacesSimilarityThreshold (numbers, 0-100)
+- colors: primary, headerBackground, footerBackground, headerFontColor, footerFontColor
+- layout: headerAlign, footerAlign ("left" | "center" | "right")
 
-### Footer Configuration (Optional)
-- **When to Show**: Based on tenant configuration `footer_enabled: true`
-- **Content Options**:
-  - Privacy Policy Link (from `privacy_policy_url`)
-  - Website Link (from `website_url`)
-  - Copyright information
-  - Empty (if no configuration provided)
-- **Behavior**: If not configured, footer area collapses completely
+Header and Footer receive these as props (backgroundColor, fontColor, align) and apply them directly as Amplify UI style props; there is no separate CSS theming layer.
 
-## Tenant Configuration UI Options
+## Result Messaging (unified pattern across all 3 services)
 
-### Configuration Schema
-```typescript
-interface TenantUIConfig {
-  header_enabled?: boolean;      // Show/hide header
-  logo_url?: string;             // URL to tenant logo
-  display_name?: string;         // Tenant display name
-  
-  footer_enabled?: boolean;      // Show/hide footer
-  privacy_policy_url?: string;   // Privacy policy URL
-  website_url?: string;          // Tenant website URL
-  
-  // Future extensibility
-  primary_color?: string;        // Custom primary color
-  secondary_color?: string;      // Custom secondary color
-}
-```
+Every service (OCRVerification, LivenessCheck, CompareFacesVerification) shows outcome messages the same way: an Alert placed immediately below the Divider that separates the title/badge area from the content Card.
+- Success: <Alert variation="success">
+- Failure/error: <Alert variation="error">, dismissible where appropriate
+- Never use the browser's native alert(); errors and results always render inline in the UI
 
-### Rendering Logic
-```typescript
-// Example component structure
-const VerificationPage = ({ tenantConfig }) => {
-  return (
-    <div className="min-h-screen flex flex-col">
-      {/* Conditional Header */}
-      {tenantConfig.header_enabled && (
-        <Header 
-          logo={tenantConfig.logo_url}
-          title={tenantConfig.display_name}
-        />
-      )}
-      
-      {/* Main Content Area */}
-      <main className="flex-grow">
-        <VerificationContent service={service} />
-      </main>
-      
-      {/* Conditional Footer */}
-      {tenantConfig.footer_enabled && (
-        <Footer
-          privacyPolicyUrl={tenantConfig.privacy_policy_url}
-          websiteUrl={tenantConfig.website_url}
-        />
-      )}
-    </div>
-  );
-};
-```
-
-## Color Palette & Typography
-
-### Base Colors (Neutral & Professional)
-```css
-/* Core Palette */
---color-primary: #3b82f6;       /* Professional blue */
---color-secondary: #6b7280;     /* Neutral gray */
---color-success: #10b981;       /* Success green */
---color-error: #ef4444;         /* Error red */
---color-warning: #f59e0b;       /* Warning amber */
-
-/* Backgrounds */
---color-background: #ffffff;
---color-surface: #f9fafb;
---color-border: #e5e7eb;
-
-/* Text */
---color-text-primary: #111827;
---color-text-secondary: #6b7280;
---color-text-muted: #9ca3af;
-```
-
-### Typography Scale
-- **Font Family**: System fonts stack (prefers -apple-system, BlinkMacSystemFont, 'Segoe UI', etc.)
-- **Base Font Size**: 16px (mobile-first)
-- **Scale**: 0.875rem (14px) → 1rem (16px) → 1.125rem (18px) → 1.25rem (20px) → 1.5rem (24px)
-
-## Component Guidelines
-
-### Button Styles
-```css
-/* Primary Button */
-.btn-primary {
-  background-color: var(--color-primary);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-}
-
-/* Secondary Button */
-.btn-secondary {
-  background-color: var(--color-surface);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-}
-
-/* Button States */
-.btn-primary:hover { background-color: #2563eb; }
-.btn-primary:focus { outline: 2px solid #3b82f6; outline-offset: 2px; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-```
-
-### Form Elements
-- **Input Fields**: Clear labels, appropriate sizing, validation states
-- **File Upload**: Clear instructions, progress indicators
-- **Camera Capture**: Real-time feedback, quality indicators
-
-## Service-Specific UI Components
-
-### Liveness Check
-- **Camera Feed**: Full-screen or large preview
-- **Instructions**: Clear step-by-step guidance
-- **Status Indicators**: Processing, success, failure states
-- **Action Buttons**: Start, retry, cancel
+## Service-Specific UI Patterns (as actually implemented)
 
 ### OCR Verification
-- **Document Upload**: Drag & drop or file selection
-- **Preview Area**: Document image preview
-- **Extracted Data**: Structured display of OCR results
-- **Validation**: Highlight issues or missing information
+- AutoCamera captures front, then back, with a rectangle guide overlay
+- After each capture: preview + Continue/Retake buttons (no auto-advance)
+- Submit button calls Bedrock; results render as a labeled list (Document Type, Country, Document #, etc.)
+- If Bedrock determines the image isn't a valid ID document, this is shown via the unified Alert error pattern, not a generic failure
 
-### Face Comparison
-- **Image Upload Areas**: Two distinct areas for reference and comparison
-- **Side-by-Side Preview**: Visual comparison
-- **Result Display**: Similarity score with confidence indicator
+### Liveness Check
+- Session is created automatically on mount (no manual "Start" button)
+- FaceLivenessDetector renders once a sessionId exists
+- Result: confidence score compared against the tenant's livenessConfidenceThreshold to decide success/fail (Rekognition's own "SUCCEEDED" status only means the technical analysis completed, not that the person passed)
+- Reference image is shown alongside the confidence score
 
-## Responsive Design
+### Compare Faces
+- Step 1: capture ID document photo (rectangle guide)
+- Step 2: Bedrock validates it's a real ID document before continuing; if invalid, shows the captured photo plus a manual Retake button (camera does not auto-restart)
+- Step 3: preview captured document with Continue/Retake
+- Step 4: Liveness (same as standalone Liveness flow)
+- Step 5: Rekognition CompareFaces between the document photo and the Liveness reference image; result shows similarity % and match/no-match via the unified Alert pattern
 
-### Breakpoints
-```css
-/* Mobile-first approach */
-/* Base styles apply to mobile */
+## Camera Capture (AutoCamera component)
+- Auto-activates on mount, requests camera permission
+- Guide overlay: rectangle (documents) or circle (faces), depending on guideType prop
+- Auto-captures after a configurable number of seconds with a visible countdown/progress indicator
+- Handles and surfaces specific error states: permission denied, no camera found, generic error, each with a retry action
 
-/* Tablet: 768px and up */
-@media (min-width: 768px) {
-  .container { max-width: 768px; }
-}
+## Internationalization
+Every user-facing string goes through the t() function from src/i18n/i18n.ts, sourced from en.json/es.json. Do not hardcode UI strings in components. FaceLivenessDetector's built-in strings are a separate exception, translated via livenessDictionary.ts due to that component's own prop schema.
 
-/* Desktop: 1024px and up */
-@media (min-width: 1024px) {
-  .container { max-width: 1024px; }
-}
-
-/* Large Desktop: 1280px and up */
-@media (min-width: 1280px) {
-  .container { max-width: 1280px; }
-}
-```
-
-### Mobile-Specific Considerations
-- **Touch Targets**: Minimum 44x44px for interactive elements
-- **Font Sizes**: Slightly larger for readability on mobile
-- **Spacing**: Adequate spacing between interactive elements
-- **Orientation**: Support for both portrait and landscape
-
-## Animation & Feedback
-
-### Micro-interactions
-- **Button Press**: Subtle scale/opacity change
-- **Form Validation**: Immediate visual feedback
-- **Loading States**: Smooth transitions between states
-- **Success/Failure**: Clear, non-intrusive notifications
-
-### Progress Indicators
-- **Linear Progress**: For multi-step processes
-- **Spinner**: For short wait times
-- **Skeleton Screens**: For content loading
-
-## Accessibility Standards
-
-### WCAG Compliance Targets
-- **Color Contrast**: Minimum 4.5:1 for normal text, 3:1 for large text
-- **Keyboard Navigation**: All interactive elements keyboard accessible
-- **Screen Reader Support**: Semantic HTML, proper ARIA labels
-- **Focus Management**: Logical focus order, visible focus indicators
-
-### ARIA Implementation
-```tsx
-// Example accessible component
-<button
-  aria-label="Start face verification"
-  aria-describedby="liveness-instructions"
-  disabled={isProcessing}
->
-  Start Verification
-</button>
-```
-
-## Implementation Notes
-
-### CSS Strategy
-- **Preference**: Tailwind CSS for utility-first styling
-- **Custom Styles**: Minimal custom CSS, extend Tailwind as needed
-- **Theming**: CSS custom properties for theme switching
-
-### Component Library Approach
-- **Build vs Buy**: Build custom components for branding control
-- **Consistency**: Shared design tokens across all components
-- **Documentation**: Storybook or similar for component documentation
-
-### Performance Considerations
-- **Image Optimization**: Lazy loading, proper formats, compression
-- **Bundle Size**: Code splitting, tree shaking
-- **Render Performance**: Memoization, virtual scrolling if needed
+## Accessibility
+- Retry/action buttons meet minimum touch target sizing
+- Alerts are used (not color alone) to convey success/failure, keeping a text label alongside the color
