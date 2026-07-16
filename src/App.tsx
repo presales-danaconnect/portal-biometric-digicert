@@ -62,16 +62,13 @@ function App() {
             <Flex direction="column" gap="xl" alignItems="center">
               <Flex direction="column" gap="xs" alignItems="center">
                 <Heading level={2}>🔐 {t('home.title')}</Heading>
-                <Badge size="small" variation="info">
-                  AWS Amplify + AI Services
+                <Badge variation="info">
+                  {t('home.subtitle')}
                 </Badge>
               </Flex>
 
               <Divider />
 
-              <Text textAlign="center" variation="primary">
-                {t('home.subtitle')}
-              </Text>
 
               <Flex direction="column" gap="m" width="100%" maxWidth="400px">
                 <Button variation="primary" size="large" as="a" href="/verify?service=ocr&tenant=demo">

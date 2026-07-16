@@ -21,6 +21,7 @@
     "nationality": "Nationality",
     "processingError": "Error processing document",
     "notADocument": "The images do not show a valid identity document. Please try again.",
+    "instructions": "Make sure your ID is well lit and fully visible.",
     "steps": {
       "front": "Position DNI front side",
       "frontFreezed": "Front side captured",
@@ -36,7 +37,8 @@
     "success": "Verification successful",
     "failed": "Verification failed",
     "confidence": "Confidence",
-    "tryAgain": "Try Again"
+    "tryAgain": "Try Again",
+    "instructions": "Look directly at the camera and follow the on-screen prompts."
   },
   "compareFaces": {
     "title": "Face Comparison",
@@ -50,6 +52,7 @@
     "similarity": "Similarity",
     "tryAgain": "Try Again",
     "validatingDocument": "Validating document...",
+    "instructions": "First capture your ID, then complete the face verification.",
     "errors": {
       "NO_FACE_DETECTED": "No face detected in one of the images. Please try again.",
       "NOT_A_DOCUMENT": "The provided image does not show a valid identity document.",
@@ -66,7 +69,7 @@
   },
   "home": {
     "title": "Identity Verification SDK",
-    "subtitle": "Auto-camera verification services",
+    "subtitle": "Choose a verification method to get started",
     "ocrCard": "OCR Document",
     "ocrDesc": "Auto-camera for DNI photos",
     "livenessCard": "Liveness Check",

@@ -137,8 +137,8 @@ export function CompareFacesVerification({
       <Flex direction="column" gap="xl">
         <Flex direction="column" gap="xs">
           <Heading level={2}>🔄 {t('compareFaces.title')}</Heading>
-          <Badge size="small" variation="warning">
-            Tenant: {tenant} | AWS Rekognition
+          <Badge variation="info">
+            {t('compareFaces.instructions')}
           </Badge>
         </Flex>
 

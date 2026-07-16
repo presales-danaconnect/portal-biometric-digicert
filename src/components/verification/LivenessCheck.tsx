@@ -97,8 +97,8 @@ export function LivenessCheck({
       <Flex direction="column" gap="xl">
         <Flex direction="column" gap="xs">
           <Heading level={2}>👤 {t('liveness.title')}</Heading>
-          <Badge size="small" variation="success">
-            Tenant: {tenant} | AWS Rekognition
+          <Badge variation="info">
+            {t('liveness.instructions')}
           </Badge>
         </Flex>
 

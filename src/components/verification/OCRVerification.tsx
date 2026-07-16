@@ -97,8 +97,8 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
       <Flex direction="column" gap="xl">
         <Flex direction="column" gap="xs">
           <Heading level={2}>📄 {t('ocr.title')}</Heading>
-          <Badge size="small" variation="info">
-            Tenant: {tenant}
+          <Badge variation="info">
+            {t('ocr.instructions')}
           </Badge>
         </Flex>
 

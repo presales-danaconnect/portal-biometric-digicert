@@ -21,6 +21,7 @@
     "nationality": "Nacionalidad",
     "processingError": "Error al procesar el documento",
     "notADocument": "Las imágenes no muestran un documento de identidad válido. Intenta de nuevo.",
+    "instructions": "Asegúrate de que tu documento esté bien iluminado y completamente visible.",
     "steps": {
       "front": "Posiciona el frente del documento",
       "frontFreezed": "Frente capturado",
@@ -36,7 +37,8 @@
     "success": "Verificación exitosa",
     "failed": "Verificación fallida",
     "confidence": "Confianza",
-    "tryAgain": "Intentar de Nuevo"
+    "tryAgain": "Intentar de Nuevo",
+    "instructions": "Mira directamente a la cámara y sigue las instrucciones en pantalla."
   },
   "compareFaces": {
     "title": "Comparación de Rostros",
@@ -50,6 +52,7 @@
     "similarity": "Similitud",
     "tryAgain": "Intentar de Nuevo",
     "validatingDocument": "Validando documento...",
+    "instructions": "Primero captura tu documento, luego completa la verificación facial.",
     "errors": {
       "NO_FACE_DETECTED": "No se detectó ningún rostro en una de las imágenes. Intenta de nuevo.",
       "NOT_A_DOCUMENT": "La imagen proporcionada no muestra un documento de identidad válido.",
@@ -66,7 +69,7 @@
   },
   "home": {
     "title": "SDK de Verificación de Identidad",
-    "subtitle": "Servicios de verificación con auto-cámara",
+    "subtitle": "Elige un método de verificación para comenzar",
     "ocrCard": "Documento OCR",
     "ocrDesc": "Auto-cámara para fotos de cédula",
     "livenessCard": "Verificación de Vida",
