@@ -6,6 +6,7 @@ import { compareFacesHandler } from './functions/compare-faces-handler/resource'
 import { mockClientApiHandler } from './functions/mock-client-api-handler/resource';
 import { dataVerificationHandler } from './functions/data-verification-handler/resource';
 import { whatsappInboundHandler } from './functions/whatsapp-inbound-handler/resource';
+import { webhookHandler } from './functions/webhook-handler/resource';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
@@ -17,6 +18,7 @@ const backend = defineBackend({
   mockClientApiHandler,
   dataVerificationHandler,
   whatsappInboundHandler,
+  webhookHandler,
 });
 
 // Production domain for CORS, read from environment — change it in
@@ -140,6 +142,17 @@ backend.whatsappInboundHandler.addEnvironment('DEFAULT_TENANT', process.env.DEFA
 backend.whatsappInboundHandler.addEnvironment('WHATSAPP_ACCESS_TOKEN', process.env.WHATSAPP_ACCESS_TOKEN || '');
 backend.whatsappInboundHandler.addEnvironment('WHATSAPP_PHONE_NUMBER_ID', process.env.WHATSAPP_PHONE_NUMBER_ID || '');
 
+// Create Function URL for the generic Webhook Handler
+// (receives all verification results; replies via WhatsApp only when the
+// payload carries a non-null `reference`, i.e. it came from the WhatsApp
+// inbound flow — otherwise it's just logged like a normal test webhook)
+const webhookHandlerFunctionUrl = backend.webhookHandler.resources.lambda.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+});
+
+backend.webhookHandler.addEnvironment('WHATSAPP_ACCESS_TOKEN', process.env.WHATSAPP_ACCESS_TOKEN || '');
+backend.webhookHandler.addEnvironment('WHATSAPP_PHONE_NUMBER_ID', process.env.WHATSAPP_PHONE_NUMBER_ID || '');
+
 // Expose Function URLs in amplify_outputs.json
 backend.addOutput({
   custom: {
@@ -149,6 +162,7 @@ backend.addOutput({
     mockClientApiUrl: mockClientApiFunctionUrl.url,
     dataVerificationHandlerUrl: dataVerificationFunctionUrl.url,
     whatsappInboundHandlerUrl: whatsappInboundFunctionUrl.url,
+    webhookHandlerUrl: webhookHandlerFunctionUrl.url,
   },
 });
 
