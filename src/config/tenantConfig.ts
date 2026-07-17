@@ -11,6 +11,7 @@ export interface TenantConfig {
   livenessConfidenceThreshold: number;
   compareFacesSimilarityThreshold: number;
   dataVerificationApiUrl?: string;
+  requiresBackDocument?: boolean;
   colors: {
     primary: string;
     headerBackground: string;
@@ -34,4 +35,14 @@ const tenants = tenantsData as TenantsMap;
  */
 export function getTenantConfig(tenantId: string): TenantConfig {
   return tenants[tenantId] || tenants['default'];
+}
+
+/**
+ * requiresBackDocument defaults to false when not explicitly set, so new
+ * tenants configured without this field don't accidentally require a back
+ * document capture (many IDs like passports or Venezuelan cédulas only
+ * have a front side).
+ */
+export function requiresBackDocument(config: TenantConfig): boolean {
+  return config.requiresBackDocument ?? false;
 }

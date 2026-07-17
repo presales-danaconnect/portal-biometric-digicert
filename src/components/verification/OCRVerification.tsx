@@ -19,14 +19,17 @@ interface OCRVerificationProps {
   tenant: string;
   webhookUrl?: string;
   geolocation?: string | null;
+  requiresBack?: boolean;
 }
 
-export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerificationProps) {
+type OcrStep = 'front' | 'frontFreezed' | 'back' | 'backFreezed' | 'done';
+
+export function OCRVerification({ tenant, webhookUrl, geolocation, requiresBack = false }: OCRVerificationProps) {
   const { t } = useTranslation();
 
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
-  const [ocrStep, setOcrStep] = useState<'front' | 'frontFreezed' | 'back' | 'backFreezed' | 'done'>('front');
+  const [ocrStep, setOcrStep] = useState<OcrStep>('front');
   const [ocrResult, setOcrResult] = useState<OCRResponse | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,8 +44,31 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
     }
   }, [ocrStep]);
 
+  const handleOCROnSubmit = useCallback(async () => {
+    if (!frontImage) return;
+    if (requiresBack && !backImage) return;
+
+    setOcrStep('done');
+    setIsProcessing(true);
+    setErrorMessage(null);
+    try {
+      const result = await callOCRAPI(frontImage, backImage || undefined, tenant, webhookUrl, geolocation);
+      if (result.success && result.data) {
+        setOcrResult(result);
+      } else if (result.errorCode === 'NOT_A_DOCUMENT') {
+        setErrorMessage(t('ocr.notADocument'));
+      } else {
+        setErrorMessage(result.error || t('common.unknownError'));
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : t('common.unknownError'));
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [frontImage, backImage, requiresBack, tenant, webhookUrl, geolocation, t]);
+
   const handleContinueOCR = () => {
-    if (ocrStep === 'frontFreezed') {
+    if (ocrStep === 'frontFreezed' && requiresBack) {
       setOcrStep('back');
     } else if (ocrStep === 'backFreezed') {
       setOcrStep('done');
@@ -59,25 +85,12 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
     }
   };
 
-  const handleOCROnSubmit = async () => {
-    if (!frontImage || !backImage) return;
-
-    setIsProcessing(true);
+  const handleStartOver = () => {
+    setFrontImage(null);
+    setBackImage(null);
+    setOcrStep('front');
+    setOcrResult(null);
     setErrorMessage(null);
-    try {
-      const result = await callOCRAPI(frontImage, backImage, tenant, webhookUrl, geolocation);
-      if (result.success && result.data) {
-        setOcrResult(result);
-      } else if (result.errorCode === 'NOT_A_DOCUMENT') {
-        setErrorMessage(t('ocr.notADocument'));
-      } else {
-        setErrorMessage(result.error || t('common.unknownError'));
-      }
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : t('common.unknownError'));
-    } finally {
-      setIsProcessing(false);
-    }
   };
 
   const stepMessages = {
@@ -90,7 +103,10 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
 
   const currentMessage = stepMessages[ocrStep];
   const showCamera = ocrStep === 'front' || ocrStep === 'back';
-  const showImage = ocrStep === 'frontFreezed' || ocrStep === 'backFreezed' || ocrStep === 'done';
+  // Photos stay visible from the moment the front is captured all the way
+  // through submission and results — only the camera view (while capturing)
+  // is mutually exclusive with this.
+  const showPhotos = ocrStep === 'frontFreezed' || ocrStep === 'backFreezed' || ocrStep === 'done';
 
   return (
     <Card variation="elevated" padding="xl" width="100%">
@@ -125,12 +141,12 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
                 maxSeconds={5}
                 onCapture={handleOCRCapture}
               />
-            ) : showImage ? (
+            ) : showPhotos ? (
               <Flex direction="column" gap="l" width="100%">
                 <Heading level={4}>✅ {t('ocr.photoCaptured')}</Heading>
 
                 <Flex direction="row" gap="l" wrap="wrap" justifyContent="center">
-                  {frontImage && (ocrStep === 'frontFreezed' || ocrStep === 'backFreezed' || ocrStep === 'done') && (
+                  {frontImage && (
                     <Flex direction="column" gap="xs" alignItems="center">
                       <Badge>{t('ocr.frontSide')}</Badge>
                       <Image
@@ -144,7 +160,7 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
                     </Flex>
                   )}
 
-                  {backImage && (ocrStep === 'backFreezed' || ocrStep === 'done') && (
+                  {backImage && (
                     <Flex direction="column" gap="xs" alignItems="center">
                       <Badge>{t('ocr.backSide')}</Badge>
                       <Image
@@ -159,14 +175,38 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
                   )}
                 </Flex>
 
-                {(ocrStep === 'frontFreezed' || ocrStep === 'backFreezed') && (
+                {ocrStep === 'frontFreezed' && (
                   <Flex gap="m" wrap="wrap" justifyContent="center">
-                    <Button variation="primary" onClick={handleContinueOCR}>
-                      {t('ocr.continue')}
+                    {requiresBack ? (
+                      <Button variation="primary" onClick={handleContinueOCR}>
+                        {t('ocr.continue')}
+                      </Button>
+                    ) : (
+                      <Button variation="primary" onClick={handleOCROnSubmit} isDisabled={isProcessing}>
+                        {t('ocr.submit')}
+                      </Button>
+                    )}
+                    <Button onClick={handleRetakeOCR}>
+                      {t('ocr.retake')}
+                    </Button>
+                  </Flex>
+                )}
+
+                {ocrStep === 'backFreezed' && (
+                  <Flex gap="m" wrap="wrap" justifyContent="center">
+                    <Button variation="primary" onClick={handleOCROnSubmit} isDisabled={isProcessing}>
+                      {t('ocr.submit')}
                     </Button>
                     <Button onClick={handleRetakeOCR}>
                       {t('ocr.retake')}
                     </Button>
+                  </Flex>
+                )}
+
+                {ocrStep === 'done' && isProcessing && (
+                  <Flex gap="xs" alignItems="center">
+                    <Loader size="small" />
+                    <Text>{t('ocr.processing')}</Text>
                   </Flex>
                 )}
               </Flex>
@@ -174,36 +214,11 @@ export function OCRVerification({ tenant, webhookUrl, geolocation }: OCRVerifica
           </Flex>
         </Card>
 
-        {ocrStep === 'done' && (
+        {ocrStep === 'done' && (ocrResult || errorMessage) && (
           <Flex direction="column" gap="m" alignItems="center" width="100%">
-            <Flex gap="m" wrap="wrap" justifyContent="center">
-              <Button
-                variation="primary"
-                onClick={handleOCROnSubmit}
-                isDisabled={isProcessing || !frontImage || !backImage}
-              >
-                {isProcessing ? (
-                  <Flex gap="xs" alignItems="center">
-                    <Loader size="small" />
-                    <Text>{t('ocr.processing')}</Text>
-                  </Flex>
-                ) : (
-                  `${t('ocr.submit')}`
-                )}
-              </Button>
-              <Button
-                variation="warning"
-                onClick={() => {
-                  setFrontImage(null);
-                  setBackImage(null);
-                  setOcrStep('front');
-                  setOcrResult(null);
-                  setErrorMessage(null);
-                }}
-              >
-                {t('ocr.startOver')}
-              </Button>
-            </Flex>
+            <Button variation="warning" onClick={handleStartOver}>
+              {t('ocr.startOver')}
+            </Button>
 
             {ocrResult && ocrResult.data && (
               <Card variation="outlined" width="100%" padding="m">

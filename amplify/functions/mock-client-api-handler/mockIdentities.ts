@@ -7,8 +7,8 @@ export interface MockIdentity {
 export const MOCK_IDENTITIES: Record<string, MockIdentity> = {
   '1148214469': {
     firstName: 'Esteban Emanuel',
-    lastName: 'Nino Castro',
-    birthDate: '1990-05-15',
+    lastName: 'Niño Castro',
+    birthDate: '2014-09-26',
   },
   '22641375': {
     firstName: 'Lizeth Lorena',

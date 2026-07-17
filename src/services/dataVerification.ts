@@ -62,7 +62,7 @@ export interface DataVerificationResponse {
 
 export async function verifyData(
   frontImage: string,
-  backImage: string,
+  backImage: string | undefined,
   docRef: string,
   tenant: string,
   webhookUrl: string | undefined,

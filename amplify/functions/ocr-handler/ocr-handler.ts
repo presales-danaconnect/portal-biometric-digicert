@@ -46,12 +46,12 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
     const body = event.body;
 
     let frontImage: string = '';
-    let backImage: string = '';
+    let backImage: string | undefined;
 
     if (contentType.includes('application/json')) {
       const parsed = JSON.parse(body || '{}');
       frontImage = parsed.frontImage;
-      backImage = parsed.backImage;
+      backImage = parsed.backImage || undefined;
       tenant = parsed.tenant || 'unknown';
       webhookUrl = parsed.webhookUrl;
       geolocation = parsed.geolocation || null;
@@ -63,16 +63,15 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       };
     }
 
-    if (!frontImage || !backImage) {
+    if (!frontImage) {
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'Missing frontImage or backImage' }),
+        body: JSON.stringify({ error: 'Missing frontImage' }),
       };
     }
 
     const frontSizeBytes = new Blob([frontImage]).size;
-    const backSizeBytes = new Blob([backImage]).size;
 
     if (frontSizeBytes > MAX_IMAGE_SIZE_BYTES) {
       console.log(`[OCR] Payload too large from ${sourceIp}: front=${frontSizeBytes}bytes`);
@@ -83,16 +82,19 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       };
     }
 
-    if (backSizeBytes > MAX_IMAGE_SIZE_BYTES) {
-      console.log(`[OCR] Payload too large from ${sourceIp}: back=${backSizeBytes}bytes`);
-      return {
-        statusCode: 413,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: `Back image exceeds ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)}MB limit` }),
-      };
+    if (backImage) {
+      const backSizeBytes = new Blob([backImage]).size;
+      if (backSizeBytes > MAX_IMAGE_SIZE_BYTES) {
+        console.log(`[OCR] Payload too large from ${sourceIp}: back=${backSizeBytes}bytes`);
+        return {
+          statusCode: 413,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: `Back image exceeds ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)}MB limit` }),
+        };
+      }
     }
 
-    console.log(`[OCR] Processing request from ${sourceIp}: front=${Math.round(frontSizeBytes/1024)}KB, back=${Math.round(backSizeBytes/1024)}KB`);
+    console.log(`[OCR] Processing request from ${sourceIp}: front=${Math.round(frontSizeBytes/1024)}KB, hasBack=${!!backImage}`);
 
     const extraction = await extractDocumentInfo(frontImage, backImage);
 
@@ -104,7 +106,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
         service: 'ocr',
         timestamp: new Date().toISOString(),
         geolocation,
-        data: { success: false, errorCode: 'NOT_A_DOCUMENT', error: 'The provided images do not show a valid identity document' },
+        data: { success: false, errorCode: 'NOT_A_DOCUMENT', error: 'The provided image(s) do not show a valid identity document' },
       });
 
       return {
@@ -113,7 +115,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
         body: JSON.stringify({
           success: false,
           errorCode: 'NOT_A_DOCUMENT',
-          error: 'The provided images do not show a valid identity document',
+          error: 'The provided image(s) do not show a valid identity document',
         }),
       };
     }

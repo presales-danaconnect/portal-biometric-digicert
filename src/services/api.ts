@@ -33,7 +33,7 @@ export interface OCRResponse {
  */
 export async function callOCRAPI(
   frontImage: string,
-  backImage: string,
+  backImage: string | undefined,
   tenant: string,
   webhookUrl?: string,
   geolocation?: string | null

@@ -21,6 +21,7 @@ interface DataVerificationProps {
   geolocation?: string | null;
   dataVerificationApiUrl?: string;
   docRef?: string | null;
+  requiresBack?: boolean;
 }
 
 type Step = 'front' | 'frontPreview' | 'back' | 'backPreview' | 'querying' | 'done';
@@ -31,6 +32,7 @@ export function DataVerification({
   geolocation,
   dataVerificationApiUrl,
   docRef,
+  requiresBack = false,
 }: DataVerificationProps) {
   const { t } = useTranslation();
 
@@ -61,7 +63,8 @@ export function DataVerification({
   };
 
   const handleSubmit = async () => {
-    if (!frontImage || !backImage || !dataVerificationApiUrl || !docRef) return;
+    if (!frontImage || !dataVerificationApiUrl || !docRef) return;
+    if (requiresBack && !backImage) return;
 
     setStep('querying');
     setError(null);
@@ -69,7 +72,7 @@ export function DataVerification({
     try {
       const response = await verifyData(
         frontImage,
-        backImage,
+        backImage || undefined,
         docRef,
         tenant,
         webhookUrl,
@@ -169,9 +172,15 @@ export function DataVerification({
                   objectFit="cover"
                 />
                 <Flex gap="m" wrap="wrap" justifyContent="center">
-                  <Button variation="primary" onClick={() => setStep('back')}>
-                    {t('ocr.continue')}
-                  </Button>
+                  {requiresBack ? (
+                    <Button variation="primary" onClick={() => setStep('back')}>
+                      {t('ocr.continue')}
+                    </Button>
+                  ) : (
+                    <Button variation="primary" onClick={handleSubmit}>
+                      {t('ocr.submit')}
+                    </Button>
+                  )}
                   <Button onClick={handleRetakeFront}>
                     {t('ocr.retake')}
                   </Button>

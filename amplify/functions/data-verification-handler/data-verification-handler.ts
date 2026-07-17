@@ -36,7 +36,7 @@ interface ComparisonAnalysis {
 
 interface DataVerificationRequestBody {
   frontImage: string;
-  backImage: string;
+  backImage?: string;
   docRef: string;
   tenant: string;
   webhookUrl?: string;
@@ -124,34 +124,48 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
     webhookUrl = body.webhookUrl;
     geolocation = body.geolocation || null;
 
-    if (!frontImage || !backImage || !docRef || !dataVerificationApiUrl) {
+    if (!frontImage || !docRef || !dataVerificationApiUrl) {
       return {
         statusCode: 400,
         headers: corsHeaders,
         body: JSON.stringify({
           success: false,
           errorCode: 'MISSING_PARAMS',
-          error: 'Missing frontImage, backImage, docRef, or dataVerificationApiUrl',
+          error: 'Missing frontImage, docRef, or dataVerificationApiUrl',
         }),
       };
     }
 
     const frontSizeBytes = new Blob([frontImage]).size;
-    const backSizeBytes = new Blob([backImage]).size;
-    if (frontSizeBytes > MAX_IMAGE_SIZE_BYTES || backSizeBytes > MAX_IMAGE_SIZE_BYTES) {
+    if (frontSizeBytes > MAX_IMAGE_SIZE_BYTES) {
       return {
         statusCode: 413,
         headers: corsHeaders,
         body: JSON.stringify({
           success: false,
           errorCode: 'IMAGE_TOO_LARGE',
-          error: `Images must not exceed ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)}MB each`,
+          error: `Front image must not exceed ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)}MB`,
         }),
       };
     }
 
+    if (backImage) {
+      const backSizeBytes = new Blob([backImage]).size;
+      if (backSizeBytes > MAX_IMAGE_SIZE_BYTES) {
+        return {
+          statusCode: 413,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            success: false,
+            errorCode: 'IMAGE_TOO_LARGE',
+            error: `Back image must not exceed ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)}MB`,
+          }),
+        };
+      }
+    }
+
     // 1. Extract document data via Bedrock (shared logic with ocr-handler)
-    console.log(`[DataVerification] Extracting document data for ${sourceIp}...`);
+    console.log(`[DataVerification] Extracting document data for ${sourceIp}, hasBack=${!!backImage}...`);
     const extraction = await extractDocumentInfo(frontImage, backImage);
 
     if (!extraction.isValidDocument || !extraction.documentInfo) {
@@ -160,7 +174,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
         service: 'data-verification',
         timestamp: new Date().toISOString(),
         geolocation,
-        data: { success: false, errorCode: 'NOT_A_DOCUMENT', error: 'The provided images do not show a valid identity document' },
+        data: { success: false, errorCode: 'NOT_A_DOCUMENT', error: 'The provided image(s) do not show a valid identity document' },
       });
 
       return {
@@ -169,7 +183,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
         body: JSON.stringify({
           success: false,
           errorCode: 'NOT_A_DOCUMENT',
-          error: 'The provided images do not show a valid identity document',
+          error: 'The provided image(s) do not show a valid identity document',
         }),
       };
     }

@@ -37,6 +37,7 @@ function App() {
           tenant={tenant}
           webhookUrl={tenantConfig.webhookUrl}
           geolocation={geolocation}
+          requiresBack={tenantConfig.requiresBackDocument}
         />;
 
       case 'liveness':
@@ -66,6 +67,7 @@ function App() {
             geolocation={geolocation}
             dataVerificationApiUrl={tenantConfig.dataVerificationApiUrl}
             docRef={docRef}
+            requiresBack={tenantConfig.requiresBackDocument}
           />
         );
 

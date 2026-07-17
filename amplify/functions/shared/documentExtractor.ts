@@ -1,5 +1,5 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
-import { OCR_PROMPT } from '../ocr-handler/ocrPrompt';
+import { OCR_PROMPT, OCR_PROMPT_FRONT_ONLY } from '../ocr-handler/ocrPrompt';
 
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const BEDROCK_MODEL_ID = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
@@ -35,17 +35,29 @@ export function parseDataURI(dataURI: string): Base64Data {
 }
 
 /**
- * Shared document extraction logic, used by ocr-handler and (in the
- * future) data-verification-handler. Validates that both images show a
- * real identity document, and if so, extracts structured fields via
- * Bedrock. Keeping this in one place avoids two Lambdas drifting apart
- * on prompt/parsing logic over time.
+ * Shared document extraction logic, used by ocr-handler and
+ * data-verification-handler. Validates that the image(s) show a real
+ * identity document, and if so, extracts structured fields via Bedrock.
+ *
+ * backImage is optional: some documents (passports, some national IDs)
+ * only have data on the front side. When backImage is omitted, a
+ * different prompt variant is used that doesn't ask Bedrock to validate
+ * or read a back side that was never captured.
  */
-export async function extractDocumentInfo(frontImage: string, backImage: string): Promise<ExtractionResult> {
+export async function extractDocumentInfo(frontImage: string, backImage?: string): Promise<ExtractionResult> {
   const frontData = parseDataURI(frontImage);
-  const backData = parseDataURI(backImage);
+  const backData = backImage ? parseDataURI(backImage) : null;
 
-  console.log('[DocumentExtractor] Calling Bedrock with model:', BEDROCK_MODEL_ID);
+  const prompt = backData ? OCR_PROMPT : OCR_PROMPT_FRONT_ONLY;
+
+  console.log('[DocumentExtractor] Calling Bedrock with model:', BEDROCK_MODEL_ID, 'hasBackImage:', !!backData);
+
+  const imageContent = [
+    { type: 'image', source: { type: 'base64', media_type: frontData.mediaType, data: frontData.data } },
+  ];
+  if (backData) {
+    imageContent.push({ type: 'image', source: { type: 'base64', media_type: backData.mediaType, data: backData.data } });
+  }
 
   const command = new InvokeModelCommand({
     modelId: BEDROCK_MODEL_ID,
@@ -58,9 +70,8 @@ export async function extractDocumentInfo(frontImage: string, backImage: string)
         {
           role: 'user',
           content: [
-            { type: 'image', source: { type: 'base64', media_type: frontData.mediaType, data: frontData.data } },
-            { type: 'image', source: { type: 'base64', media_type: backData.mediaType, data: backData.data } },
-            { type: 'text', text: OCR_PROMPT },
+            ...imageContent,
+            { type: 'text', text: prompt },
           ],
         },
       ],
