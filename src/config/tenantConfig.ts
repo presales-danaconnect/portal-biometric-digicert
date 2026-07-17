@@ -10,6 +10,7 @@ export interface TenantConfig {
   webhookUrl: string;
   livenessConfidenceThreshold: number;
   compareFacesSimilarityThreshold: number;
+  dataVerificationApiUrl?: string;
   colors: {
     primary: string;
     headerBackground: string;

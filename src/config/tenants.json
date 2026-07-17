@@ -7,6 +7,7 @@
     "webhookUrl": "https://cy3yq3wclzjqswhhjuuks5seam0mykns.lambda-url.us-east-1.on.aws/",
     "livenessConfidenceThreshold": 80,
     "compareFacesSimilarityThreshold": 80,
+    "dataVerificationApiUrl": "https://4e4qcn3airxmyky7lgwkafpjfy0qvkfv.lambda-url.us-east-1.on.aws/",
     "colors": {
       "primary": "#0C6069",
       "headerBackground": "#0C6069",

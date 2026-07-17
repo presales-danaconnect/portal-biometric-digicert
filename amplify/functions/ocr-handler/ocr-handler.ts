@@ -1,37 +1,9 @@
 import { type Handler, type APIGatewayProxyEventV2, type APIGatewayProxyResultV2 } from 'aws-lambda';
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
-import { OCR_PROMPT } from './ocrPrompt';
+import { extractDocumentInfo } from '../shared/documentExtractor';
 import { notifyWebhook } from '../shared/webhookNotifier';
 import { getCorsHeaders } from '../shared/cors';
 
-const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
-
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
-
-interface DocumentInfo {
-  documentNumber: string;
-  country: string;
-  documentType: string;
-  birthDate: string;
-  firstName: string;
-  lastName: string;
-  expirationDate: string;
-  gender?: string;
-  nationality?: string;
-}
-
-interface Base64Data {
-  data: string;
-  mediaType: string;
-}
-
-function parseDataURI(dataURI: string): Base64Data {
-  const match = dataURI.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-  if (match) {
-    return { mediaType: match[1], data: match[2] };
-  }
-  return { mediaType: 'image/jpeg', data: dataURI };
-}
 
 async function validateRequestToken(_event: APIGatewayProxyEventV2): Promise<{ valid: boolean; error?: string }> {
   return { valid: true };
@@ -177,90 +149,3 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
     };
   }
 };
-
-interface ExtractionResult {
-  isValidDocument: boolean;
-  documentInfo: DocumentInfo | null;
-}
-
-async function extractDocumentInfo(frontImage: string, backImage: string): Promise<ExtractionResult> {
-  const frontData = parseDataURI(frontImage);
-  const backData = parseDataURI(backImage);
-
-  const prompt = OCR_PROMPT;
-  const modelId = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
-
-  console.log('[OCR] Calling Bedrock with model:', modelId);
-
-  const command = new InvokeModelCommand({
-    modelId: modelId,
-    contentType: 'application/json',
-    accept: 'application/json',
-    body: JSON.stringify({
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 1000,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: frontData.mediaType, data: frontData.data } },
-            { type: 'image', source: { type: 'base64', media_type: backData.mediaType, data: backData.data } },
-            { type: 'text', text: prompt }
-          ]
-        }
-      ]
-    })
-  });
-
-  console.log('[OCR] Sending request to Bedrock...');
-  const response = await client.send(command);
-  console.log('[OCR] Received response from Bedrock');
-
-  const responseBody = new TextDecoder().decode(response.body);
-  const parsedResponse = JSON.parse(responseBody);
-
-  let extractedText = '';
-  if (parsedResponse.content && Array.isArray(parsedResponse.content)) {
-    extractedText = parsedResponse.content.map((block: any) =>
-      block.type === 'text' ? block.text : ''
-    ).join('\n');
-  } else {
-    extractedText = parsedResponse.completion || parsedResponse.text || JSON.stringify(parsedResponse);
-  }
-
-  console.log('[OCR] Extracted text:', extractedText.substring(0, 200) + '...');
-
-  return parseDocumentInfo(extractedText);
-}
-
-function parseDocumentInfo(text: string): ExtractionResult {
-  const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-  const jsonText = jsonMatch ? jsonMatch[1] : text;
-
-  try {
-    const parsed = JSON.parse(jsonText.trim());
-
-    if (parsed.isValidDocument === false) {
-      return { isValidDocument: false, documentInfo: null };
-    }
-
-    return {
-      isValidDocument: true,
-      documentInfo: {
-        documentNumber: parsed.documentNumber || '',
-        country: parsed.country || '',
-        documentType: parsed.documentType || '',
-        birthDate: parsed.birthDate || '',
-        firstName: parsed.firstName || '',
-        lastName: parsed.lastName || '',
-        expirationDate: parsed.expirationDate || '',
-        gender: parsed.gender,
-        nationality: parsed.nationality,
-      },
-    };
-  } catch {
-    // If Claude's response can't be parsed at all, treat it conservatively
-    // as "not a valid document" rather than returning empty-but-successful data.
-    return { isValidDocument: false, documentInfo: null };
-  }
-}

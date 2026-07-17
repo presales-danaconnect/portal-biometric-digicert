@@ -3,6 +3,8 @@ import { auth } from './auth/resource';
 import { ocrHandler } from './functions/ocr-handler/resource';
 import { livenessHandler } from './functions/liveness-handler/resource';
 import { compareFacesHandler } from './functions/compare-faces-handler/resource';
+import { mockClientApiHandler } from './functions/mock-client-api-handler/resource';
+import { dataVerificationHandler } from './functions/data-verification-handler/resource';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
@@ -11,6 +13,8 @@ const backend = defineBackend({
   ocrHandler,
   livenessHandler,
   compareFacesHandler,
+  mockClientApiHandler,
+  dataVerificationHandler,
 });
 
 // Production domain for CORS, read from environment — change it in
@@ -22,6 +26,7 @@ const PRODUCTION_ORIGIN = process.env.PRODUCTION_ORIGIN || 'https://main.d21x455
 backend.ocrHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 backend.livenessHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 backend.compareFacesHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
+backend.dataVerificationHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 
 const BEDROCK_MODEL_RESOURCES = [
   'arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
@@ -96,12 +101,35 @@ backend.compareFacesHandler.resources.lambda.addToRolePolicy(
   })
 );
 
+// Create Function URL for the Mock Client API Handler
+// (no special IAM permissions needed — it doesn't call Bedrock or Rekognition)
+const mockClientApiFunctionUrl = backend.mockClientApiHandler.resources.lambda.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+});
+
+// Create Function URL for the Data Verification Handler
+const dataVerificationFunctionUrl = backend.dataVerificationHandler.resources.lambda.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+});
+
+// Grant Bedrock InvokeModel permission to the Data Verification Lambda
+// (used both to extract document data and to semantically compare it
+// against the tenant's external API response)
+backend.dataVerificationHandler.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['bedrock:InvokeModel'],
+    resources: BEDROCK_MODEL_RESOURCES,
+  })
+);
+
 // Expose Function URLs in amplify_outputs.json
 backend.addOutput({
   custom: {
     ocrApiUrl: ocrFunctionUrl.url,
     livenessApiUrl: livenessFunctionUrl.url,
     compareFacesApiUrl: compareFacesFunctionUrl.url,
+    mockClientApiUrl: mockClientApiFunctionUrl.url,
+    dataVerificationHandlerUrl: dataVerificationFunctionUrl.url,
   },
 });
 

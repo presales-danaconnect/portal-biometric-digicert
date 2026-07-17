@@ -15,6 +15,7 @@ import { useGeolocation } from './hooks/useGeolocation';
 import { OCRVerification } from './components/verification/OCRVerification';
 import { LivenessCheck } from './components/verification/LivenessCheck';
 import { CompareFacesVerification } from './components/verification/CompareFacesVerification';
+import { DataVerification } from './components/verification/DataVerification';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 
@@ -23,6 +24,7 @@ function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const service = urlParams.get('service') || 'default';
   const tenant = urlParams.get('tenant') || 'demo';
+  const docRef = urlParams.get('docRef');
   const { t } = useTranslation();
   const tenantConfig = getTenantConfig(tenant);
   const geolocation = useGeolocation();
@@ -53,6 +55,17 @@ function App() {
             webhookUrl={tenantConfig.webhookUrl}
             geolocation={geolocation}
             similarityThreshold={tenantConfig.compareFacesSimilarityThreshold}
+          />
+        );
+
+      case 'data-verification':
+        return (
+          <DataVerification
+            tenant={tenant}
+            webhookUrl={tenantConfig.webhookUrl}
+            geolocation={geolocation}
+            dataVerificationApiUrl={tenantConfig.dataVerificationApiUrl}
+            docRef={docRef}
           />
         );
 
@@ -89,6 +102,13 @@ function App() {
                   <Flex direction="column" alignItems="flex-start" gap="xs">
                     <Text fontWeight="bold">🔄 {t('home.compareCard')}</Text>
                     <Text fontSize="small">{t('home.compareDesc')}</Text>
+                  </Flex>
+                </Button>
+
+                <Button variation="primary" size="large" as="a" href="/verify?service=data-verification&tenant=demo&docRef=1148214469">
+                  <Flex direction="column" alignItems="flex-start" gap="xs">
+                    <Text fontWeight="bold">🔎 {t('home.dataVerificationCard')}</Text>
+                    <Text fontSize="small">{t('home.dataVerificationDesc')}</Text>
                   </Flex>
                 </Button>
               </Flex>

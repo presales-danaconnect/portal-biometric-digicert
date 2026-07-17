@@ -67,6 +67,25 @@
       "GENERIC_ERROR": "Something went wrong. Please try again."
     }
   },
+  "dataVerification": {
+    "title": "Data Verification",
+    "documentGuideText": "Position DNI front side",
+    "documentGuideTextBack": "Position DNI back side",
+    "querying": "Verifying data...",
+    "match": "Data matches",
+    "noMatch": "Data does not match",
+    "notFound": "No record found for this document",
+    "documentNumber": "Document Number",
+    "names": "Names",
+    "lastNames": "Last Names",
+    "birthDate": "Birth Date",
+    "tryAgain": "Try Again",
+    "errors": {
+      "MISSING_PARAMS": "Missing required information. Please try again.",
+      "IMAGE_TOO_LARGE": "Image is too large. Please try again.",
+      "NOT_A_DOCUMENT": "The provided images do not show a valid identity document."
+    }
+  },
   "home": {
     "title": "Identity Verification SDK",
     "subtitle": "Choose a verification method to get started",
@@ -75,7 +94,9 @@
     "livenessCard": "Liveness Check",
     "livenessDesc": "Face detection",
     "compareCard": "Face Comparison",
-    "compareDesc": "DNI + Face matching"
+    "compareDesc": "DNI + Face matching",
+    "dataVerificationCard": "Data Verification",
+    "dataVerificationDesc": "Compare document data with an external system"
   },
   "footer": {
     "privacyPolicy": "Privacy Policy",

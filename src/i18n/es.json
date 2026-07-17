@@ -67,6 +67,25 @@
       "GENERIC_ERROR": "Algo salió mal. Intenta de nuevo."
     }
   },
+  "dataVerification": {
+    "title": "Verificación de Datos",
+    "documentGuideText": "Posiciona el frente de la cédula",
+    "documentGuideTextBack": "Posiciona el reverso de la cédula",
+    "querying": "Verificando datos...",
+    "match": "Los datos coinciden",
+    "noMatch": "Los datos no coinciden",
+    "notFound": "No se encontró registro para este documento",
+    "documentNumber": "Número de Documento",
+    "names": "Nombres",
+    "lastNames": "Apellidos",
+    "birthDate": "Fecha de Nacimiento",
+    "tryAgain": "Intentar de Nuevo",
+    "errors": {
+      "MISSING_PARAMS": "Falta información requerida. Intenta de nuevo.",
+      "IMAGE_TOO_LARGE": "La imagen es demasiado grande. Intenta de nuevo.",
+      "NOT_A_DOCUMENT": "Las imágenes no muestran un documento de identidad válido."
+    }
+  },
   "home": {
     "title": "SDK de Verificación de Identidad",
     "subtitle": "Elige un método de verificación para comenzar",
@@ -75,7 +94,9 @@
     "livenessCard": "Verificación de Vida",
     "livenessDesc": "Detección facial",
     "compareCard": "Comparación de Rostros",
-    "compareDesc": "Coincidencia de cédula + rostro"
+    "compareDesc": "Coincidencia de cédula + rostro",
+    "dataVerificationCard": "Verificación de Datos",
+    "dataVerificationDesc": "Compara datos del documento con un sistema externo"
   },
   "footer": {
     "privacyPolicy": "Política de Privacidad",

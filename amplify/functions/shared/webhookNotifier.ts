@@ -1,4 +1,4 @@
-export type ServiceType = 'ocr' | 'liveness' | 'compare-faces';
+export type ServiceType = 'ocr' | 'liveness' | 'compare-faces' | 'data-verification';
 
 export interface WebhookPayload {
   tenant: string;
