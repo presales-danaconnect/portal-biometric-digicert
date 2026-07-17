@@ -112,6 +112,7 @@ interface CompareFacesRequestBody {
   tenant: string;
   webhookUrl?: string;
   geolocation?: string | null;
+  reference?: string | null;
   similarityThreshold?: number;
 }
 
@@ -136,6 +137,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
   let tenant = 'unknown';
   let webhookUrl: string | undefined;
   let geolocation: string | null = null;
+  let reference: string | null = null;
 
   try {
     const body = JSON.parse(event.body || '{}') as CompareFacesRequestBody;
@@ -144,6 +146,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
     tenant = body.tenant || 'unknown';
     webhookUrl = body.webhookUrl;
     geolocation = body.geolocation || null;
+    reference = body.reference || null;
 
     if (!documentImage) {
       return {
@@ -181,6 +184,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
           service: 'compare-faces',
           timestamp: new Date().toISOString(),
           geolocation,
+          reference,
           data: { success: false, errorCode: 'NOT_A_DOCUMENT', error: 'The provided image does not show a valid identity document' },
         });
       }
@@ -253,6 +257,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
         service: 'compare-faces',
         timestamp: new Date().toISOString(),
         geolocation,
+        reference,
         data: { success: false, errorCode, error: message },
       });
 
@@ -285,6 +290,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       service: 'compare-faces',
       timestamp: new Date().toISOString(),
       geolocation,
+      reference,
       data: resultData,
     });
 

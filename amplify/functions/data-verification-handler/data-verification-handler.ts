@@ -41,6 +41,7 @@ interface DataVerificationRequestBody {
   tenant: string;
   webhookUrl?: string;
   geolocation?: string | null;
+  reference?: string | null;
   dataVerificationApiUrl: string;
 }
 
@@ -116,6 +117,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
   let tenant = 'unknown';
   let webhookUrl: string | undefined;
   let geolocation: string | null = null;
+  let reference: string | null = null;
 
   try {
     const body = JSON.parse(event.body || '{}') as DataVerificationRequestBody;
@@ -123,6 +125,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
     tenant = body.tenant || 'unknown';
     webhookUrl = body.webhookUrl;
     geolocation = body.geolocation || null;
+    reference = body.reference || null;
 
     if (!frontImage || !docRef || !dataVerificationApiUrl) {
       return {
@@ -174,6 +177,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
         service: 'data-verification',
         timestamp: new Date().toISOString(),
         geolocation,
+        reference,
         data: { success: false, errorCode: 'NOT_A_DOCUMENT', error: 'The provided image(s) do not show a valid identity document' },
       });
 
@@ -208,6 +212,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
         service: 'data-verification',
         timestamp: new Date().toISOString(),
         geolocation,
+        reference,
         data: resultData,
       });
 
@@ -237,6 +242,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       service: 'data-verification',
       timestamp: new Date().toISOString(),
       geolocation,
+      reference,
       data: resultData,
     });
 

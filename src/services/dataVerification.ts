@@ -67,7 +67,8 @@ export async function verifyData(
   tenant: string,
   webhookUrl: string | undefined,
   geolocation: string | null | undefined,
-  dataVerificationApiUrl: string
+  dataVerificationApiUrl: string,
+  reference?: string | null
 ): Promise<DataVerificationResponse> {
   const response = await fetch(API_ENDPOINT, {
     method: 'POST',
@@ -80,6 +81,7 @@ export async function verifyData(
       webhookUrl,
       geolocation,
       dataVerificationApiUrl,
+      reference,
     }),
   });
 

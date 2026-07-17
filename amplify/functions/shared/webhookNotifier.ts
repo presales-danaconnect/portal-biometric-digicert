@@ -5,6 +5,7 @@ export interface WebhookPayload {
   service: ServiceType;
   timestamp: string;
   geolocation: string | null;
+  reference: string | null;
   data: unknown;
 }
 

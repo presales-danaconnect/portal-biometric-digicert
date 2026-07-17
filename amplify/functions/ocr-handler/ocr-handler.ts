@@ -40,6 +40,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
   let tenant = 'unknown';
   let webhookUrl: string | undefined;
   let geolocation: string | null = null;
+  let reference: string | null = null;
 
   try {
     const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
@@ -55,6 +56,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       tenant = parsed.tenant || 'unknown';
       webhookUrl = parsed.webhookUrl;
       geolocation = parsed.geolocation || null;
+      reference = parsed.reference || null;
     } else {
       return {
         statusCode: 400,
@@ -106,6 +108,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
         service: 'ocr',
         timestamp: new Date().toISOString(),
         geolocation,
+        reference,
         data: { success: false, errorCode: 'NOT_A_DOCUMENT', error: 'The provided image(s) do not show a valid identity document' },
       });
 
@@ -127,6 +130,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
       service: 'ocr',
       timestamp: new Date().toISOString(),
       geolocation,
+      reference,
       data: extraction.documentInfo,
     });
 

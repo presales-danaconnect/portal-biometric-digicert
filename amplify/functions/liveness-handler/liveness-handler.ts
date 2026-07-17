@@ -19,6 +19,7 @@ interface GetResultsRequestBody {
   tenant: string;
   webhookUrl?: string;
   geolocation?: string | null;
+  reference?: string | null;
 }
 
 type RequestBody = CreateSessionRequestBody | GetResultsRequestBody;
@@ -97,7 +98,7 @@ async function handleGetResults(
   body: GetResultsRequestBody,
   corsHeaders: Record<string, string>
 ): Promise<APIGatewayProxyResultV2> {
-  const { sessionId, tenant, webhookUrl, geolocation } = body;
+  const { sessionId, tenant, webhookUrl, geolocation, reference } = body;
 
   if (!sessionId) {
     return {
@@ -129,6 +130,7 @@ async function handleGetResults(
     service: 'liveness',
     timestamp: new Date().toISOString(),
     geolocation: geolocation || null,
+    reference: reference || null,
     data: resultData,
   });
 

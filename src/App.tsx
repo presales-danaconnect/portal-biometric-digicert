@@ -25,6 +25,10 @@ function App() {
   const service = urlParams.get('service') || 'default';
   const tenant = urlParams.get('tenant') || 'demo';
   const docRef = urlParams.get('docRef');
+  // Optional correlation id (e.g. a WhatsApp phone number) that a tenant
+  // passes through untouched so their own webhook can route the result
+  // back to the right conversation.
+  const reference = urlParams.get('reference');
   const { t } = useTranslation();
   const tenantConfig = getTenantConfig(tenant);
   const geolocation = useGeolocation();
@@ -68,6 +72,7 @@ function App() {
             dataVerificationApiUrl={tenantConfig.dataVerificationApiUrl}
             docRef={docRef}
             requiresBack={tenantConfig.requiresBackDocument}
+            reference={reference}
           />
         );
 
@@ -76,14 +81,13 @@ function App() {
           <Card variation="elevated" padding="xl" width="100%">
             <Flex direction="column" gap="xl" alignItems="center">
               <Flex direction="column" gap="xs" alignItems="center">
-                <Heading level={2}>🔐 {t('home.title')}</Heading>
+                <Heading level={2}>�� {t('home.title')}</Heading>
                 <Badge variation="info">
                   {t('home.subtitle')}
                 </Badge>
               </Flex>
 
               <Divider />
-
 
               <Flex direction="column" gap="m" width="100%" maxWidth="400px">
                 <Button variation="primary" size="large" as="a" href="/verify?service=ocr&tenant=demo">

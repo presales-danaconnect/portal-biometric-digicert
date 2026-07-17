@@ -22,6 +22,7 @@ interface DataVerificationProps {
   dataVerificationApiUrl?: string;
   docRef?: string | null;
   requiresBack?: boolean;
+  reference?: string | null;
 }
 
 type Step = 'front' | 'frontPreview' | 'back' | 'backPreview' | 'querying' | 'done';
@@ -33,6 +34,7 @@ export function DataVerification({
   dataVerificationApiUrl,
   docRef,
   requiresBack = false,
+  reference,
 }: DataVerificationProps) {
   const { t } = useTranslation();
 
@@ -77,7 +79,8 @@ export function DataVerification({
         tenant,
         webhookUrl,
         geolocation,
-        dataVerificationApiUrl
+        dataVerificationApiUrl,
+        reference
       );
 
       if (response.success && response.data) {

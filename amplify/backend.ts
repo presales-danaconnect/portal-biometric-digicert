@@ -5,6 +5,7 @@ import { livenessHandler } from './functions/liveness-handler/resource';
 import { compareFacesHandler } from './functions/compare-faces-handler/resource';
 import { mockClientApiHandler } from './functions/mock-client-api-handler/resource';
 import { dataVerificationHandler } from './functions/data-verification-handler/resource';
+import { whatsappInboundHandler } from './functions/whatsapp-inbound-handler/resource';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
@@ -15,6 +16,7 @@ const backend = defineBackend({
   compareFacesHandler,
   mockClientApiHandler,
   dataVerificationHandler,
+  whatsappInboundHandler,
 });
 
 // Production domain for CORS, read from environment — change it in
@@ -122,6 +124,22 @@ backend.dataVerificationHandler.resources.lambda.addToRolePolicy(
   })
 );
 
+// Create Function URL for the WhatsApp Inbound Handler
+// (receives forwarded WhatsApp messages from the external router Lambda)
+const whatsappInboundFunctionUrl = backend.whatsappInboundHandler.resources.lambda.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+});
+
+// Configuration for the WhatsApp inbound flow. Credentials come from
+// environment variables — set them locally before running `npx ampx sandbox`
+// (e.g. `export WHATSAPP_ACCESS_TOKEN=...`) and in Amplify Console →
+// Environment variables for production. Never hardcode tokens here.
+backend.whatsappInboundHandler.addEnvironment('MOCK_CLIENT_API_URL', mockClientApiFunctionUrl.url);
+backend.whatsappInboundHandler.addEnvironment('VERIFICATION_BASE_URL', PRODUCTION_ORIGIN);
+backend.whatsappInboundHandler.addEnvironment('DEFAULT_TENANT', process.env.DEFAULT_TENANT || 'demo');
+backend.whatsappInboundHandler.addEnvironment('WHATSAPP_ACCESS_TOKEN', process.env.WHATSAPP_ACCESS_TOKEN || '');
+backend.whatsappInboundHandler.addEnvironment('WHATSAPP_PHONE_NUMBER_ID', process.env.WHATSAPP_PHONE_NUMBER_ID || '');
+
 // Expose Function URLs in amplify_outputs.json
 backend.addOutput({
   custom: {
@@ -130,6 +148,7 @@ backend.addOutput({
     compareFacesApiUrl: compareFacesFunctionUrl.url,
     mockClientApiUrl: mockClientApiFunctionUrl.url,
     dataVerificationHandlerUrl: dataVerificationFunctionUrl.url,
+    whatsappInboundHandlerUrl: whatsappInboundFunctionUrl.url,
   },
 });
 
