@@ -32,12 +32,10 @@ export async function createLivenessSession(): Promise<CreateSessionResponse> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'create' }),
     });
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`API error (${response.status}): ${errorText}`);
     }
-
     return response.json();
   } catch (error) {
     console.error('Liveness create session error:', error);
@@ -49,7 +47,8 @@ export async function getLivenessResults(
   sessionId: string,
   tenant: string,
   webhookUrl?: string,
-  geolocation?: string | null
+  geolocation?: string | null,
+  reference?: string | null
 ): Promise<GetResultsResponse> {
   try {
     const response = await fetch(API_ENDPOINT, {
@@ -61,14 +60,13 @@ export async function getLivenessResults(
         tenant,
         webhookUrl,
         geolocation,
+        reference,
       }),
     });
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`API error (${response.status}): ${errorText}`);
     }
-
     return response.json();
   } catch (error) {
     console.error('Liveness get results error:', error);

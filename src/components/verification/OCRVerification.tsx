@@ -20,11 +20,12 @@ interface OCRVerificationProps {
   webhookUrl?: string;
   geolocation?: string | null;
   requiresBack?: boolean;
+  reference?: string | null;
 }
 
 type OcrStep = 'front' | 'frontFreezed' | 'back' | 'backFreezed' | 'done';
 
-export function OCRVerification({ tenant, webhookUrl, geolocation, requiresBack = false }: OCRVerificationProps) {
+export function OCRVerification({ tenant, webhookUrl, geolocation, requiresBack = false, reference }: OCRVerificationProps) {
   const { t } = useTranslation();
 
   const [frontImage, setFrontImage] = useState<string | null>(null);
@@ -52,7 +53,7 @@ export function OCRVerification({ tenant, webhookUrl, geolocation, requiresBack 
     setIsProcessing(true);
     setErrorMessage(null);
     try {
-      const result = await callOCRAPI(frontImage, backImage || undefined, tenant, webhookUrl, geolocation);
+      const result = await callOCRAPI(frontImage, backImage || undefined, tenant, webhookUrl, geolocation, reference);
       if (result.success && result.data) {
         setOcrResult(result);
       } else if (result.errorCode === 'NOT_A_DOCUMENT') {
@@ -65,7 +66,7 @@ export function OCRVerification({ tenant, webhookUrl, geolocation, requiresBack 
     } finally {
       setIsProcessing(false);
     }
-  }, [frontImage, backImage, requiresBack, tenant, webhookUrl, geolocation, t]);
+  }, [frontImage, backImage, requiresBack, tenant, webhookUrl, geolocation, reference, t]);
 
   const handleContinueOCR = () => {
     if (ocrStep === 'frontFreezed' && requiresBack) {
@@ -103,9 +104,6 @@ export function OCRVerification({ tenant, webhookUrl, geolocation, requiresBack 
 
   const currentMessage = stepMessages[ocrStep];
   const showCamera = ocrStep === 'front' || ocrStep === 'back';
-  // Photos stay visible from the moment the front is captured all the way
-  // through submission and results — only the camera view (while capturing)
-  // is mutually exclusive with this.
   const showPhotos = ocrStep === 'frontFreezed' || ocrStep === 'backFreezed' || ocrStep === 'done';
 
   return (

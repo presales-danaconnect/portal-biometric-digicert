@@ -33,7 +33,6 @@ export async function validateDocument(documentImage: string): Promise<ValidateD
       documentImage,
     }),
   });
-
   return response.json();
 }
 
@@ -43,7 +42,8 @@ export async function compareFaces(
   tenant: string,
   webhookUrl?: string,
   geolocation?: string | null,
-  similarityThreshold?: number
+  similarityThreshold?: number,
+  reference?: string | null
 ): Promise<CompareFacesResponse> {
   const response = await fetch(API_ENDPOINT, {
     method: 'POST',
@@ -56,10 +56,9 @@ export async function compareFaces(
       webhookUrl,
       geolocation,
       similarityThreshold,
+      reference,
     }),
   });
 
-  // Even non-2xx responses carry a structured { success, errorCode, error }
-  // body from our Lambda, so we parse it instead of throwing on !response.ok.
   return response.json();
 }

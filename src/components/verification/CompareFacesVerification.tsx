@@ -24,6 +24,7 @@ interface CompareFacesVerificationProps {
   webhookUrl?: string;
   geolocation?: string | null;
   similarityThreshold: number;
+  reference?: string | null;
 }
 
 type Step = 'document' | 'validating' | 'documentInvalid' | 'documentPreview' | 'liveness' | 'comparing' | 'done';
@@ -33,6 +34,7 @@ export function CompareFacesVerification({
   webhookUrl,
   geolocation,
   similarityThreshold,
+  reference,
 }: CompareFacesVerificationProps) {
   const { t, lang } = useTranslation();
 
@@ -60,7 +62,6 @@ export function CompareFacesVerification({
     }
   }, [t]);
 
-  // Al entrar al paso de liveness, crea la sesión automáticamente
   useEffect(() => {
     if (step === 'liveness' && !sessionId && !error) {
       startLivenessSession();
@@ -108,7 +109,8 @@ export function CompareFacesVerification({
         tenant,
         webhookUrl,
         geolocation,
-        similarityThreshold
+        similarityThreshold,
+        reference
       );
       if (response.success && response.data) {
         setResult(response.data);

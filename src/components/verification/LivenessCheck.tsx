@@ -22,6 +22,7 @@ interface LivenessCheckProps {
   webhookUrl?: string;
   geolocation?: string | null;
   confidenceThreshold: number;
+  reference?: string | null;
 }
 
 export function LivenessCheck({
@@ -29,6 +30,7 @@ export function LivenessCheck({
   webhookUrl,
   geolocation,
   confidenceThreshold,
+  reference,
 }: LivenessCheckProps) {
   const { t, lang } = useTranslation();
 
@@ -64,7 +66,7 @@ export function LivenessCheck({
     if (!sessionId) return;
     setIsLoading(true);
     try {
-      const response = await getLivenessResults(sessionId, tenant, webhookUrl, geolocation);
+      const response = await getLivenessResults(sessionId, tenant, webhookUrl, geolocation, reference);
       if (response.success && response.data) {
         setResult(response.data);
       } else {
@@ -84,10 +86,6 @@ export function LivenessCheck({
     startSession();
   };
 
-  // El status "SUCCEEDED" solo indica que Rekognition pudo completar el
-  // análisis técnico — no que la persona sea real. El confidence score
-  // es lo que realmente determina si pasa la verificación, comparado
-  // contra el umbral configurado por cada tenant.
   const isLive = result
     ? result.status === 'SUCCEEDED' && result.confidence >= confidenceThreshold
     : false;

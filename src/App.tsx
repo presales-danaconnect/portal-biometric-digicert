@@ -21,7 +21,6 @@ import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 
 function App() {
-  // Determinar el servicio desde los parámetros de URL
   const urlParams = new URLSearchParams(window.location.search);
   const service = urlParams.get('service') || 'default';
   const tenant = urlParams.get('tenant') || 'demo';
@@ -31,10 +30,6 @@ function App() {
   const tenantConfig = getTenantConfig(tenant);
   const geolocation = useGeolocation();
 
-  // Overrides Amplify UI's "brand.primary" color tokens with the tenant's
-  // configured color, so Button variation="primary" (and anything else
-  // reading brand.primary) reflects tenant branding instead of the
-  // library's default teal.
   const theme = {
     name: 'tenant-theme',
     tokens: {
@@ -76,7 +71,6 @@ function App() {
     },
   };
 
-  // Renderizar servicio seleccionado
   const renderService = () => {
     switch (service) {
       case 'ocr':
@@ -85,6 +79,7 @@ function App() {
           webhookUrl={tenantConfig.webhookUrl}
           geolocation={geolocation}
           requiresBack={tenantConfig.requiresBackDocument}
+          reference={reference}
         />;
 
       case 'liveness':
@@ -94,6 +89,7 @@ function App() {
             webhookUrl={tenantConfig.webhookUrl}
             geolocation={geolocation}
             confidenceThreshold={tenantConfig.livenessConfidenceThreshold}
+            reference={reference}
           />
         );
       case 'compare-faces':
@@ -103,9 +99,9 @@ function App() {
             webhookUrl={tenantConfig.webhookUrl}
             geolocation={geolocation}
             similarityThreshold={tenantConfig.compareFacesSimilarityThreshold}
+            reference={reference}
           />
         );
-
       case 'data-verification':
         return (
           <DataVerification
@@ -118,7 +114,6 @@ function App() {
             reference={reference}
           />
         );
-
       default:
         return (
           <Card variation="elevated" padding="xl" width="100%">

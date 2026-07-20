@@ -29,6 +29,7 @@ export interface OCRResponse {
  * @param tenant - Tenant identifier, forwarded to the webhook payload
  * @param webhookUrl - Client webhook URL; the Lambda notifies it server-to-server
  * @param geolocation - Captured browser geolocation, forwarded to the webhook payload
+ * @param reference - Optional correlation id (e.g. WhatsApp phone number), forwarded to the webhook payload
  * @returns OCR result with extracted document information
  */
 export async function callOCRAPI(
@@ -36,7 +37,8 @@ export async function callOCRAPI(
   backImage: string | undefined,
   tenant: string,
   webhookUrl?: string,
-  geolocation?: string | null
+  geolocation?: string | null,
+  reference?: string | null
 ): Promise<OCRResponse> {
   const response = await fetch(`${API_ENDPOINT}`, {
     method: 'POST',
@@ -49,13 +51,9 @@ export async function callOCRAPI(
       tenant,
       webhookUrl,
       geolocation,
+      reference,
     }),
   });
 
-  // Even non-2xx responses (400, 422, 500...) carry a structured
-  // { success, errorCode, error } body from our Lambda, so we parse it
-  // instead of throwing on !response.ok. This lets the caller distinguish
-  // between specific error codes (e.g. NOT_A_DOCUMENT) instead of only
-  // seeing a generic thrown error.
   return response.json();
 }
