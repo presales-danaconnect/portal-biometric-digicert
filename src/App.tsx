@@ -7,6 +7,7 @@ import {
   Badge,
   View,
   Divider,
+  ThemeProvider,
 } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import { getTenantConfig } from './config/tenantConfig';
@@ -25,13 +26,55 @@ function App() {
   const service = urlParams.get('service') || 'default';
   const tenant = urlParams.get('tenant') || 'demo';
   const docRef = urlParams.get('docRef');
-  // Optional correlation id (e.g. a WhatsApp phone number) that a tenant
-  // passes through untouched so their own webhook can route the result
-  // back to the right conversation.
   const reference = urlParams.get('reference');
   const { t } = useTranslation();
   const tenantConfig = getTenantConfig(tenant);
   const geolocation = useGeolocation();
+
+  // Overrides Amplify UI's "brand.primary" color tokens with the tenant's
+  // configured color, so Button variation="primary" (and anything else
+  // reading brand.primary) reflects tenant branding instead of the
+  // library's default teal.
+  const theme = {
+    name: 'tenant-theme',
+    tokens: {
+      colors: {
+        brand: {
+          primary: {
+            10: { value: tenantConfig.colors.primary },
+            20: { value: tenantConfig.colors.primary },
+            40: { value: tenantConfig.colors.primary },
+            60: { value: tenantConfig.colors.primary },
+            80: { value: tenantConfig.colors.primary },
+            90: { value: tenantConfig.colors.primary },
+            100: { value: tenantConfig.colors.primary },
+          },
+        },
+      },
+      components: {
+        button: {
+          primary: {
+            backgroundColor: { value: tenantConfig.colors.primary },
+            _hover: {
+              backgroundColor: { value: tenantConfig.colors.primary },
+            },
+            _focus: {
+              backgroundColor: { value: tenantConfig.colors.primary },
+            },
+            _active: {
+              backgroundColor: { value: tenantConfig.colors.primary },
+            },
+          },
+        },
+        loader: {
+          strokeFilled: { value: tenantConfig.colors.primary },
+          linear: {
+            strokeFilled: { value: tenantConfig.colors.primary },
+          },
+        },
+      },
+    },
+  };
 
   // Renderizar servicio seleccionado
   const renderService = () => {
@@ -81,7 +124,7 @@ function App() {
           <Card variation="elevated" padding="xl" width="100%">
             <Flex direction="column" gap="xl" alignItems="center">
               <Flex direction="column" gap="xs" alignItems="center">
-                <Heading level={2}>�� {t('home.title')}</Heading>
+                <Heading level={2}>🔐 {t('home.title')}</Heading>
                 <Badge variation="info">
                   {t('home.subtitle')}
                 </Badge>
@@ -111,7 +154,7 @@ function App() {
                   </Flex>
                 </Button>
 
-                <Button variation="primary" size="large" as="a" href="/verify?service=data-verification&tenant=demo&docRef=1148214469">
+                <Button variation="primary" size="large" as="a" href="/verify?service=data-verification&tenant=demo&docRef=22641375">
                   <Flex direction="column" alignItems="flex-start" gap="xs">
                     <Text fontWeight="bold">🔎 {t('home.dataVerificationCard')}</Text>
                     <Text fontSize="small">{t('home.dataVerificationDesc')}</Text>
@@ -125,35 +168,37 @@ function App() {
   };
 
   return (
-    <View backgroundColor="background.primary" minHeight="100vh">
-      <Flex direction="column" minHeight="100vh">
-        <Header
-          title={tenantConfig.headerTitle}
-          logoUrl={tenantConfig.headerLogoUrl}
-          backgroundColor={tenantConfig.colors.headerBackground}
-          fontColor={tenantConfig.colors.headerFontColor}
-          align={tenantConfig.layout.headerAlign}
-        />
+    <ThemeProvider theme={theme}>
+      <View backgroundColor="background.primary" minHeight="100vh">
+        <Flex direction="column" minHeight="100vh">
+          <Header
+            title={tenantConfig.headerTitle}
+            logoUrl={tenantConfig.headerLogoUrl}
+            backgroundColor={tenantConfig.colors.headerBackground}
+            fontColor={tenantConfig.colors.headerFontColor}
+            align={tenantConfig.layout.headerAlign}
+          />
 
-        <Flex
-          maxWidth="800px"
-          margin="0 auto"
-          width="100%"
-          padding={{ base: 'm', large: 'xl' }}
-          flex="1"
-        >
-          {renderService()}
+          <Flex
+            maxWidth="800px"
+            margin="0 auto"
+            width="100%"
+            padding={{ base: 'm', large: 'xl' }}
+            flex="1"
+          >
+            {renderService()}
+          </Flex>
+
+          <Footer
+            privacyPolicyUrl={tenantConfig.footerPrivacyPolicyUrl}
+            websiteUrl={tenantConfig.footerWebsiteUrl}
+            backgroundColor={tenantConfig.colors.footerBackground}
+            fontColor={tenantConfig.colors.footerFontColor}
+            align={tenantConfig.layout.footerAlign}
+          />
         </Flex>
-
-        <Footer
-          privacyPolicyUrl={tenantConfig.footerPrivacyPolicyUrl}
-          websiteUrl={tenantConfig.footerWebsiteUrl}
-          backgroundColor={tenantConfig.colors.footerBackground}
-          fontColor={tenantConfig.colors.footerFontColor}
-          align={tenantConfig.layout.footerAlign}
-        />
-      </Flex>
-    </View>
+      </View>
+    </ThemeProvider>
   );
 }
 
