@@ -80,6 +80,8 @@ function App() {
           geolocation={geolocation}
           requiresBack={tenantConfig.requiresBackDocument}
           reference={reference}
+          confidenceThreshold={tenantConfig.ocrConfidenceThreshold}
+          maxAttempts={tenantConfig.maxVerificationAttempts}
         />;
 
       case 'liveness':
@@ -90,6 +92,7 @@ function App() {
             geolocation={geolocation}
             confidenceThreshold={tenantConfig.livenessConfidenceThreshold}
             reference={reference}
+            maxAttempts={tenantConfig.maxVerificationAttempts}
           />
         );
       case 'compare-faces':
@@ -100,6 +103,7 @@ function App() {
             geolocation={geolocation}
             similarityThreshold={tenantConfig.compareFacesSimilarityThreshold}
             reference={reference}
+            maxAttempts={tenantConfig.maxVerificationAttempts}
           />
         );
       case 'data-verification':
@@ -112,6 +116,7 @@ function App() {
             docRef={docRef}
             requiresBack={tenantConfig.requiresBackDocument}
             reference={reference}
+            maxAttempts={tenantConfig.maxVerificationAttempts}
           />
         );
       default:

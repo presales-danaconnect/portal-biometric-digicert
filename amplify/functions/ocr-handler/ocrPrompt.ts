@@ -29,6 +29,7 @@ ${extractionIntro}
 - expirationDate: Document expiration date in YYYY-MM-DD format
 - gender: Gender/M (optional)
 - nationality: Nationality (optional)
+- confidence: A number from 0 to 100 representing how confident you are in the accuracy and completeness of the extracted fields. Consider image sharpness, lighting, glare, and whether any field was hard to read or ambiguous. Use 90-100 only when the document was clearly legible with no doubts; use lower values when any field was blurry, partially obscured, or you had to guess
 
 IMPORTANT INSTRUCTIONS FOR DATES:
 - These documents typically show dates in DD-MM-YYYY or "DD MES YYYY" format (e.g., "26 SEP 1990")
@@ -37,7 +38,7 @@ IMPORTANT INSTRUCTIONS FOR DATES:
 - Expiration date (fecha de vencimiento / vigencia hasta) is typically in the future or recent past
 - Double-check: if your extracted birthDate would make the person impossibly young or from the future, re-read the document more carefully — you likely confused it with another date field
 - Do not confuse "fecha de expedición" (issue date) with "fecha de nacimiento" (birth date) — these are different fields, often both present on the same document
-- If a field isn't visible on the available image(s), leave it as an empty string rather than guessing
+- If a field isn't visible on the available image(s), leave it as an empty string rather than guessing, and lower your confidence score accordingly
 
 Return ONLY a valid JSON object without any additional text or markdown formatting.
 
@@ -52,7 +53,8 @@ Example response when a valid document is found:
   "lastName": "GARCÍA LÓPEZ",
   "expirationDate": "2030-05-15",
   "gender": "M",
-  "nationality": "Colombian"
+  "nationality": "Colombian",
+  "confidence": 95
 }
 
 Example response when NOT a valid document:

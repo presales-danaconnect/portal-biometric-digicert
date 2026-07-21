@@ -17,6 +17,7 @@ import { createLivenessSession } from '../../services/liveness';
 import { compareFaces, validateDocument, CompareFacesResultData } from '../../services/compareFaces';
 import { useTranslation } from '../../i18n/i18n';
 import { livenessDictionary } from '../../i18n/livenessDictionary';
+import { useAttemptTracker } from '../../hooks/useAttemptTracker';
 import outputs from '../../../amplify_outputs.json';
 
 interface CompareFacesVerificationProps {
@@ -25,6 +26,7 @@ interface CompareFacesVerificationProps {
   geolocation?: string | null;
   similarityThreshold: number;
   reference?: string | null;
+  maxAttempts?: number;
 }
 
 type Step = 'document' | 'validating' | 'documentInvalid' | 'documentPreview' | 'liveness' | 'comparing' | 'done';
@@ -35,8 +37,10 @@ export function CompareFacesVerification({
   geolocation,
   similarityThreshold,
   reference,
+  maxAttempts = 3,
 }: CompareFacesVerificationProps) {
   const { t, lang } = useTranslation();
+  const { hasReachedLimit, recordAttempt } = useAttemptTracker(tenant, 'compare-faces', maxAttempts);
 
   const [step, setStep] = useState<Step>('document');
   const [documentImage, setDocumentImage] = useState<string | null>(null);
@@ -123,6 +127,7 @@ export function CompareFacesVerification({
     } finally {
       setIsLoading(false);
       setStep('done');
+      recordAttempt();
     }
   };
 
@@ -133,6 +138,8 @@ export function CompareFacesVerification({
     setResult(null);
     setError(null);
   };
+
+  const isSuccessful = !!(result && result.isMatch);
 
   return (
     <Card variation="elevated" padding="xl" width="100%">
@@ -147,14 +154,20 @@ export function CompareFacesVerification({
         <Divider />
 
         {step === 'done' && result && (
-          <Alert variation={result.isMatch ? 'success' : 'error'}>
-            {result.isMatch ? t('compareFaces.match') : t('compareFaces.noMatch')}
+          <Alert variation={isSuccessful ? 'success' : 'error'}>
+            {isSuccessful ? t('compareFaces.match') : t('compareFaces.noMatch')}
           </Alert>
         )}
 
         {error && (
           <Alert variation="error" isDismissible onDismiss={() => setError(null)}>
             {error}
+          </Alert>
+        )}
+
+        {step === 'done' && hasReachedLimit && !isSuccessful && (
+          <Alert variation="error">
+            {t('common.maxAttemptsReached')}
           </Alert>
         )}
 
@@ -274,9 +287,11 @@ export function CompareFacesVerification({
                     )}
                   </>
                 )}
-                <Button variation="primary" onClick={handleRetry}>
-                  {t('compareFaces.tryAgain')}
-                </Button>
+                {!isSuccessful && !hasReachedLimit && (
+                  <Button variation="primary" onClick={handleRetry}>
+                    {t('compareFaces.tryAgain')}
+                  </Button>
+                )}
               </Flex>
             )}
           </Flex>

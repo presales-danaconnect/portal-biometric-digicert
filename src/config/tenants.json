@@ -7,8 +7,10 @@
     "webhookUrl": "https://ousdod7ltzpv27uefjcfwj5ezm0oqbyt.lambda-url.us-east-1.on.aws/",
     "livenessConfidenceThreshold": 80,
     "compareFacesSimilarityThreshold": 80,
+    "ocrConfidenceThreshold": 70,
     "dataVerificationApiUrl": "https://ulczencaj62efzgv35krn2ktoa0bvlri.lambda-url.us-east-1.on.aws/",
     "requiresBackDocument": true,
+    "maxVerificationAttempts": 3,
     "colors": {
       "primary": "#0C6069",
       "headerBackground": "#0C6069",
@@ -29,8 +31,10 @@
     "webhookUrl": "https://ousdod7ltzpv27uefjcfwj5ezm0oqbyt.lambda-url.us-east-1.on.aws/",
     "livenessConfidenceThreshold": 80,
     "compareFacesSimilarityThreshold": 80,
+    "ocrConfidenceThreshold": 70,
     "dataVerificationApiUrl": "https://ulczencaj62efzgv35krn2ktoa0bvlri.lambda-url.us-east-1.on.aws/",
     "requiresBackDocument": false,
+    "maxVerificationAttempts": 3,
     "colors": {
       "primary": "#ef4b27",
       "headerBackground": "#ffffff",
@@ -51,7 +55,9 @@
     "webhookUrl": "https://ousdod7ltzpv27uefjcfwj5ezm0oqbyt.lambda-url.us-east-1.on.aws/",
     "livenessConfidenceThreshold": 80,
     "compareFacesSimilarityThreshold": 80,
+    "ocrConfidenceThreshold": 70,
     "requiresBackDocument": true,
+    "maxVerificationAttempts": 3,
     "colors": {
       "primary": "#0a1a3c",
       "headerBackground": "#ffffff",

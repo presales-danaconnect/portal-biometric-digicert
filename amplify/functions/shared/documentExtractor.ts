@@ -14,6 +14,7 @@ export interface DocumentInfo {
   expirationDate: string;
   gender?: string;
   nationality?: string;
+  confidence: number;
 }
 
 export interface Base64Data {
@@ -37,7 +38,9 @@ export function parseDataURI(dataURI: string): Base64Data {
 /**
  * Shared document extraction logic, used by ocr-handler and
  * data-verification-handler. Validates that the image(s) show a real
- * identity document, and if so, extracts structured fields via Bedrock.
+ * identity document, and if so, extracts structured fields via Bedrock,
+ * including a self-reported confidence score (0-100) used to decide
+ * whether the extraction is reliable enough to accept.
  *
  * backImage is optional: some documents (passports, some national IDs)
  * only have data on the front side. When backImage is omitted, a
@@ -122,6 +125,7 @@ function parseDocumentInfo(text: string): ExtractionResult {
         expirationDate: parsed.expirationDate || '',
         gender: parsed.gender,
         nationality: parsed.nationality,
+        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
       },
     };
   } catch {

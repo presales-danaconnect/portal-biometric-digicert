@@ -22,10 +22,12 @@
     "processingError": "Error al procesar el documento",
     "notADocument": "Las imágenes no muestran un documento de identidad válido. Intenta de nuevo.",
     "instructions": "Asegúrate de que tu documento esté bien iluminado y completamente visible.",
+    "confidence": "Confianza",
+    "lowConfidence": "La calidad de la imagen del documento fue muy baja para extraer datos de forma confiable. Por favor repite la foto con mejor iluminación y enfoque.",
     "steps": {
       "front": "Posiciona el frente del documento",
       "frontFreezed": "Frente capturado",
-      "back": "Posiciona el reverso del docuemento",
+      "back": "Posiciona el reverso del documento",
       "backFreezed": "Reverso capturado",
       "done": "Listo para procesar OCR"
     }
@@ -105,7 +107,8 @@
   },
   "common": {
     "error": "Error",
-    "unknownError": "Error desconocido"
+    "unknownError": "Error desconocido",
+    "maxAttemptsReached": "Has alcanzado el número máximo de intentos. Por favor contacta a soporte."
   },
   "camera": {
     "activating": "Activando cámara...",

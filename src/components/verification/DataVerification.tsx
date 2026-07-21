@@ -14,6 +14,7 @@ import {
 import { AutoCamera } from './AutoCamera';
 import { verifyData, DataVerificationResultData } from '../../services/dataVerification';
 import { useTranslation } from '../../i18n/i18n';
+import { useAttemptTracker } from '../../hooks/useAttemptTracker';
 
 interface DataVerificationProps {
   tenant: string;
@@ -23,6 +24,7 @@ interface DataVerificationProps {
   docRef?: string | null;
   requiresBack?: boolean;
   reference?: string | null;
+  maxAttempts?: number;
 }
 
 type Step = 'front' | 'frontPreview' | 'back' | 'backPreview' | 'querying' | 'done';
@@ -35,8 +37,10 @@ export function DataVerification({
   docRef,
   requiresBack = false,
   reference,
+  maxAttempts = 3,
 }: DataVerificationProps) {
   const { t } = useTranslation();
+  const { hasReachedLimit, recordAttempt } = useAttemptTracker(tenant, 'data-verification', maxAttempts);
 
   const [step, setStep] = useState<Step>('front');
   const [frontImage, setFrontImage] = useState<string | null>(null);
@@ -93,6 +97,7 @@ export function DataVerification({
       setError(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
       setStep('done');
+      recordAttempt();
     }
   };
 
@@ -104,8 +109,6 @@ export function DataVerification({
     setError(null);
   };
 
-  // Missing configuration guard: this service requires both docRef (URL param)
-  // and dataVerificationApiUrl (tenant config) to function at all.
   if (!dataVerificationApiUrl || !docRef) {
     return (
       <Card variation="elevated" padding="xl" width="100%">
@@ -120,7 +123,7 @@ export function DataVerification({
     );
   }
 
-  const isMatch = result?.analysis?.overallMatch ?? false;
+  const isMatch = !!(result?.found && result?.analysis?.overallMatch);
 
   return (
     <Card variation="elevated" padding="xl" width="100%">
@@ -149,6 +152,12 @@ export function DataVerification({
         {error && (
           <Alert variation="error" isDismissible onDismiss={() => setError(null)}>
             {error}
+          </Alert>
+        )}
+
+        {step === 'done' && hasReachedLimit && !isMatch && (
+          <Alert variation="error">
+            {t('common.maxAttemptsReached')}
           </Alert>
         )}
 
@@ -240,13 +249,17 @@ export function DataVerification({
                     <Text fontSize="small" color="font.secondary">{result.analysis.summary}</Text>
                   )}
                 </Flex>
-                <Button variation="primary" onClick={handleRetry}>
-                  {t('dataVerification.tryAgain')}
-                </Button>
+                {/* Success ends the flow — no retry button shown at all.
+                    Failure only offers retry if attempts remain. */}
+                {!isMatch && !hasReachedLimit && (
+                  <Button variation="primary" onClick={handleRetry}>
+                    {t('dataVerification.tryAgain')}
+                  </Button>
+                )}
               </Flex>
             )}
 
-            {step === 'done' && result && !result.found && (
+            {step === 'done' && result && !result.found && !hasReachedLimit && (
               <Flex direction="column" gap="m" alignItems="center">
                 <Button variation="primary" onClick={handleRetry}>
                   {t('dataVerification.tryAgain')}
@@ -254,7 +267,7 @@ export function DataVerification({
               </Flex>
             )}
 
-            {step === 'done' && error && (
+            {step === 'done' && error && !hasReachedLimit && (
               <Flex direction="column" gap="m" alignItems="center">
                 <Button variation="primary" onClick={handleRetry}>
                   {t('dataVerification.tryAgain')}

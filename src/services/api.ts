@@ -10,6 +10,7 @@ export interface DocumentInfo {
   expirationDate: string;
   gender?: string;
   nationality?: string;
+  confidence: number;
 }
 
 export interface OCRResponse {

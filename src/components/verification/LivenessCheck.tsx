@@ -15,6 +15,7 @@ import { FaceLivenessDetector } from '@aws-amplify/ui-react-liveness';
 import { createLivenessSession, getLivenessResults, LivenessResultData } from '../../services/liveness';
 import { useTranslation } from '../../i18n/i18n';
 import { livenessDictionary } from '../../i18n/livenessDictionary';
+import { useAttemptTracker } from '../../hooks/useAttemptTracker';
 import outputs from '../../../amplify_outputs.json';
 
 interface LivenessCheckProps {
@@ -23,6 +24,7 @@ interface LivenessCheckProps {
   geolocation?: string | null;
   confidenceThreshold: number;
   reference?: string | null;
+  maxAttempts?: number;
 }
 
 export function LivenessCheck({
@@ -31,8 +33,10 @@ export function LivenessCheck({
   geolocation,
   confidenceThreshold,
   reference,
+  maxAttempts = 3,
 }: LivenessCheckProps) {
   const { t, lang } = useTranslation();
+  const { hasReachedLimit, recordAttempt } = useAttemptTracker(tenant, 'liveness', maxAttempts);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [result, setResult] = useState<LivenessResultData | null>(null);
@@ -58,7 +62,9 @@ export function LivenessCheck({
   }, [t]);
 
   useEffect(() => {
-    startSession();
+    if (!hasReachedLimit) {
+      startSession();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -69,11 +75,14 @@ export function LivenessCheck({
       const response = await getLivenessResults(sessionId, tenant, webhookUrl, geolocation, reference);
       if (response.success && response.data) {
         setResult(response.data);
+        recordAttempt();
       } else {
         setError(response.error || t('common.unknownError'));
+        recordAttempt();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.unknownError'));
+      recordAttempt();
     } finally {
       setIsLoading(false);
     }
@@ -114,6 +123,12 @@ export function LivenessCheck({
           </Alert>
         )}
 
+        {hasReachedLimit && !isLive && (
+          <Alert variation="error">
+            {t('common.maxAttemptsReached')}
+          </Alert>
+        )}
+
         <Card variation="outlined">
           <Flex direction="column" gap="l" alignItems="center" padding="l">
             {result ? (
@@ -131,15 +146,21 @@ export function LivenessCheck({
                     objectFit="cover"
                   />
                 )}
-                <Button variation="primary" onClick={handleRetry}>
-                  {t('liveness.tryAgain')}
-                </Button>
+                {/* Success ends the flow — no retry button shown at all.
+                    Failure only offers retry if attempts remain. */}
+                {!isLive && !hasReachedLimit && (
+                  <Button variation="primary" onClick={handleRetry}>
+                    {t('liveness.tryAgain')}
+                  </Button>
+                )}
               </Flex>
             ) : error ? (
               <Flex direction="column" gap="m" alignItems="center">
-                <Button variation="primary" onClick={handleRetry}>
-                  {t('liveness.tryAgain')}
-                </Button>
+                {!hasReachedLimit && (
+                  <Button variation="primary" onClick={handleRetry}>
+                    {t('liveness.tryAgain')}
+                  </Button>
+                )}
               </Flex>
             ) : isLoading && !sessionId ? (
               <Flex direction="column" gap="m" alignItems="center">
@@ -155,6 +176,7 @@ export function LivenessCheck({
                 onError={(err) => {
                   console.error('FaceLivenessDetector error:', err);
                   setError(t('liveness.failed'));
+                  recordAttempt();
                 }}
               />
             ) : null}

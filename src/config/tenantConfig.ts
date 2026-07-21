@@ -10,8 +10,10 @@ export interface TenantConfig {
   webhookUrl: string;
   livenessConfidenceThreshold: number;
   compareFacesSimilarityThreshold: number;
+  ocrConfidenceThreshold: number;
   dataVerificationApiUrl?: string;
   requiresBackDocument?: boolean;
+  maxVerificationAttempts?: number;
   colors: {
     primary: string;
     headerBackground: string;
@@ -45,4 +47,13 @@ export function getTenantConfig(tenantId: string): TenantConfig {
  */
 export function requiresBackDocument(config: TenantConfig): boolean {
   return config.requiresBackDocument ?? false;
+}
+
+/**
+ * maxVerificationAttempts defaults to 3 when not explicitly set, so new
+ * tenants configured without this field still get a reasonable attempt
+ * limit instead of unlimited retries.
+ */
+export function getMaxVerificationAttempts(config: TenantConfig): number {
+  return config.maxVerificationAttempts ?? 3;
 }
