@@ -27,10 +27,23 @@ const backend = defineBackend({
 // sandbox runs where that variable isn't set.
 const PRODUCTION_ORIGIN = process.env.PRODUCTION_ORIGIN || 'https://main.d21x455s6ork0e.amplifyapp.com';
 
+// Shared secret used to HMAC-sign outgoing webhook payloads (ocr, liveness,
+// compare-faces, data-verification handlers) and to verify that signature
+// on the receiving side (webhook-handler). A single global secret across
+// all tenants — see webhookNotifier.ts for why, given the current
+// committed-JSON tenant config model.
+const WEBHOOK_SIGNING_SECRET = process.env.WEBHOOK_SIGNING_SECRET || '';
+
 backend.ocrHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 backend.livenessHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 backend.compareFacesHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
 backend.dataVerificationHandler.addEnvironment('PRODUCTION_ORIGIN', PRODUCTION_ORIGIN);
+
+backend.ocrHandler.addEnvironment('WEBHOOK_SIGNING_SECRET', WEBHOOK_SIGNING_SECRET);
+backend.livenessHandler.addEnvironment('WEBHOOK_SIGNING_SECRET', WEBHOOK_SIGNING_SECRET);
+backend.compareFacesHandler.addEnvironment('WEBHOOK_SIGNING_SECRET', WEBHOOK_SIGNING_SECRET);
+backend.dataVerificationHandler.addEnvironment('WEBHOOK_SIGNING_SECRET', WEBHOOK_SIGNING_SECRET);
+backend.webhookHandler.addEnvironment('WEBHOOK_SIGNING_SECRET', WEBHOOK_SIGNING_SECRET);
 
 const BEDROCK_MODEL_RESOURCES = [
   'arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
