@@ -1,32 +1,34 @@
 import {
-  Button,
-  Card,
   Flex,
-  Heading,
-  Text,
-  Badge,
   View,
-  Divider,
   ThemeProvider,
 } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import { getTenantConfig } from './config/tenantConfig';
-import { useTranslation } from './i18n/i18n';
 import { useGeolocation } from './hooks/useGeolocation';
 import { OCRVerification } from './components/verification/OCRVerification';
 import { LivenessCheck } from './components/verification/LivenessCheck';
 import { CompareFacesVerification } from './components/verification/CompareFacesVerification';
 import { DataVerification } from './components/verification/DataVerification';
+import { ProductLanding } from './components/marketing/ProductLanding';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 
 function App() {
   const urlParams = new URLSearchParams(window.location.search);
-  const service = urlParams.get('service') || 'default';
+  const service = urlParams.get('service');
+
+  // The root path (and any /verify request with no ?service=) is the
+  // marketing landing page, with its own standalone design — decoupled
+  // from the tenant-themed verification flows below. No router library
+  // is used here; everything is driven by ?service= at /verify.
+  if (!service) {
+    return <ProductLanding />;
+  }
+
   const tenant = urlParams.get('tenant') || 'demo';
   const docRef = urlParams.get('docRef');
   const reference = urlParams.get('reference');
-  const { t } = useTranslation();
   const tenantConfig = getTenantConfig(tenant);
   const geolocation = useGeolocation();
 
@@ -120,50 +122,9 @@ function App() {
           />
         );
       default:
-        return (
-          <Card variation="elevated" padding="xl" width="100%">
-            <Flex direction="column" gap="xl" alignItems="center">
-              <Flex direction="column" gap="xs" alignItems="center">
-                <Heading level={2}>🔐 {t('home.title')}</Heading>
-                <Badge variation="info">
-                  {t('home.subtitle')}
-                </Badge>
-              </Flex>
-
-              <Divider />
-
-              <Flex direction="column" gap="m" width="100%" maxWidth="400px">
-                <Button variation="primary" size="large" as="a" href="/verify?service=ocr&tenant=demo">
-                  <Flex direction="column" alignItems="flex-start" gap="xs">
-                    <Text fontWeight="bold">📄 {t('home.ocrCard')}</Text>
-                    <Text fontSize="small">{t('home.ocrDesc')}</Text>
-                  </Flex>
-                </Button>
-
-                <Button variation="primary" size="large" as="a" href="/verify?service=liveness&tenant=demo">
-                  <Flex direction="column" alignItems="flex-start" gap="xs">
-                    <Text fontWeight="bold">👤 {t('home.livenessCard')}</Text>
-                    <Text fontSize="small">{t('home.livenessDesc')}</Text>
-                  </Flex>
-                </Button>
-
-                <Button variation="primary" size="large" as="a" href="/verify?service=compare-faces&tenant=demo">
-                  <Flex direction="column" alignItems="flex-start" gap="xs">
-                    <Text fontWeight="bold">🔄 {t('home.compareCard')}</Text>
-                    <Text fontSize="small">{t('home.compareDesc')}</Text>
-                  </Flex>
-                </Button>
-
-                <Button variation="primary" size="large" as="a" href="/verify?service=data-verification&tenant=demo&docRef=22641375">
-                  <Flex direction="column" alignItems="flex-start" gap="xs">
-                    <Text fontWeight="bold">🔎 {t('home.dataVerificationCard')}</Text>
-                    <Text fontSize="small">{t('home.dataVerificationDesc')}</Text>
-                  </Flex>
-                </Button>
-              </Flex>
-            </Flex>
-          </Card>
-        );
+        // Unrecognized ?service= value — send them back to the landing
+        // rather than showing a broken or empty page.
+        return <ProductLanding />;
     }
   };
 
