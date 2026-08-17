@@ -130,7 +130,7 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <View backgroundColor="background.primary" minHeight="100vh">
+      <View backgroundColor={tenantConfig.colors.background} minHeight="100vh">
         <Flex direction="column" minHeight="100vh">
           <Header
             title={tenantConfig.headerTitle}

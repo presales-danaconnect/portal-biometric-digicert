@@ -15,6 +15,7 @@ export interface TenantConfig {
   requiresBackDocument?: boolean;
   maxVerificationAttempts?: number;
   colors: {
+    background: string;
     primary: string;
     headerBackground: string;
     footerBackground: string;

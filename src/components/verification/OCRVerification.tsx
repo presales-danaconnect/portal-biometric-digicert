@@ -131,7 +131,7 @@ export function OCRVerification({
   const isLowConfidence = !!(ocrResult && ocrResult.data && confidence < confidenceThreshold);
 
   return (
-    <Card variation="elevated" padding="xl" width="100%">
+    <Card padding="xl" width="100%" borderRadius="xl">
       <Flex direction="column" gap="xl">
         <Flex direction="column" gap="xs">
           <Heading level={2}>📄 {t('ocr.title')}</Heading>

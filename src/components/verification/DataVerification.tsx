@@ -126,7 +126,7 @@ export function DataVerification({
   const isMatch = !!(result?.found && result?.analysis?.overallMatch);
 
   return (
-    <Card variation="elevated" padding="xl" width="100%">
+    <Card padding="xl" width="100%" borderRadius="xl">
       <Flex direction="column" gap="xl">
         <Flex direction="column" gap="xs">
           <Heading level={2}>🔎 {t('dataVerification.title')}</Heading>

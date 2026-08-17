@@ -100,7 +100,7 @@ export function LivenessCheck({
     : false;
 
   return (
-    <Card variation="elevated" padding="xl" width="100%">
+    <Card padding="xl" width="100%" borderRadius="xl">
       <Flex direction="column" gap="xl">
         <Flex direction="column" gap="xs">
           <Heading level={2}>👤 {t('liveness.title')}</Heading>
