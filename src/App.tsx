@@ -1,36 +1,77 @@
+import { useState, useEffect } from 'react';
 import {
   Flex,
   View,
   ThemeProvider,
 } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
-import { getTenantConfig } from './config/tenantConfig';
-import { useGeolocation } from './hooks/useGeolocation';
+import { getConfig, CircuitConfig } from './services/biometricApi';
 import { OCRVerification } from './components/verification/OCRVerification';
 import { LivenessCheck } from './components/verification/LivenessCheck';
 import { CompareFacesVerification } from './components/verification/CompareFacesVerification';
 import { DataVerification } from './components/verification/DataVerification';
-import { ProductLanding } from './components/marketing/ProductLanding';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 
 function App() {
   const urlParams = new URLSearchParams(window.location.search);
-  const service = urlParams.get('service');
+  const circuitId = urlParams.get('circuit');
 
-  // The root path (and any /verify request with no ?service=) is the
-  // marketing landing page, with its own standalone design — decoupled
-  // from the tenant-themed verification flows below. No router library
-  // is used here; everything is driven by ?service= at /verify.
-  if (!service) {
-    return <ProductLanding />;
+  const [config, setConfig] = useState<CircuitConfig | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [completed, setCompleted] = useState(false);
+
+  useEffect(() => {
+    if (!circuitId) {
+      setError('Circuito no válido. Por favor verifica el enlace.');
+      setLoading(false);
+      return;
+    }
+
+    getConfig(circuitId)
+      .then((data) => {
+        setConfig(data);
+        if (data.stepsCompleted?.length > 0) {
+          setCurrentStepIndex(data.stepsCompleted.length);
+        }
+        if (data.status === 'completed' || data.status === 'failed') {
+          setCompleted(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('No se pudo cargar la verificación. El enlace puede haber expirado.');
+        setLoading(false);
+      });
+  }, [circuitId]);
+
+  const handleStepComplete = () => {
+    if (!config) return;
+    const nextIndex = currentStepIndex + 1;
+    if (nextIndex >= config.steps.length) {
+      setCompleted(true);
+    } else {
+      setCurrentStepIndex(nextIndex);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View minHeight="100vh" display="flex" alignItems="center" justifyContent="center">
+        <p>Cargando...</p>
+      </View>
+    );
   }
 
-  const tenant = urlParams.get('tenant') || 'demo';
-  const docRef = urlParams.get('docRef');
-  const reference = urlParams.get('reference');
-  const tenantConfig = getTenantConfig(tenant);
-  const geolocation = useGeolocation();
+  if (error || !config || !circuitId) {
+    return (
+      <View minHeight="100vh" display="flex" alignItems="center" justifyContent="center">
+        <p>{error || 'Enlace no válido'}</p>
+      </View>
+    );
+  }
 
   const theme = {
     name: 'tenant-theme',
@@ -38,108 +79,94 @@ function App() {
       colors: {
         brand: {
           primary: {
-            10: { value: tenantConfig.colors.primary },
-            20: { value: tenantConfig.colors.primary },
-            40: { value: tenantConfig.colors.primary },
-            60: { value: tenantConfig.colors.primary },
-            80: { value: tenantConfig.colors.primary },
-            90: { value: tenantConfig.colors.primary },
-            100: { value: tenantConfig.colors.primary },
+            10: { value: config.ui.colors.primary },
+            20: { value: config.ui.colors.primary },
+            40: { value: config.ui.colors.primary },
+            60: { value: config.ui.colors.primary },
+            80: { value: config.ui.colors.primary },
+            90: { value: config.ui.colors.primary },
+            100: { value: config.ui.colors.primary },
           },
         },
-      },
-      components: {
-        button: {
-          primary: {
-            backgroundColor: { value: tenantConfig.colors.primary },
-            _hover: {
-              backgroundColor: { value: tenantConfig.colors.primary },
-            },
-            _focus: {
-              backgroundColor: { value: tenantConfig.colors.primary },
-            },
-            _active: {
-              backgroundColor: { value: tenantConfig.colors.primary },
+        components: {
+          button: {
+            primary: {
+              backgroundColor: { value: config.ui.colors.primary },
+              _hover: { backgroundColor: { value: config.ui.colors.primary } },
+              _focus: { backgroundColor: { value: config.ui.colors.primary } },
+              _active: { backgroundColor: { value: config.ui.colors.primary } },
             },
           },
-        },
-        loader: {
-          strokeFilled: { value: tenantConfig.colors.primary },
-          linear: {
-            strokeFilled: { value: tenantConfig.colors.primary },
+          loader: {
+            strokeFilled: { value: config.ui.colors.primary },
+            linear: { strokeFilled: { value: config.ui.colors.primary } },
           },
         },
       },
     },
   };
 
-  const renderService = () => {
-    switch (service) {
-      case 'ocr':
-        return <OCRVerification
-          tenant={tenant}
-          webhookUrl={tenantConfig.webhookUrl}
-          geolocation={geolocation}
-          requiresBack={tenantConfig.requiresBackDocument}
-          reference={reference}
-          confidenceThreshold={tenantConfig.ocrConfidenceThreshold}
-          maxAttempts={tenantConfig.maxVerificationAttempts}
-        />;
+  const currentStep = config.steps[currentStepIndex];
 
+  const renderStep = () => {
+    if (completed) {
+      return (
+        <View textAlign="center" padding="xl">
+          <h2>✅ Verificación completada</h2>
+          <p>Tu identidad ha sido verificada exitosamente.</p>
+        </View>
+      );
+    }
+
+    switch (currentStep) {
       case 'liveness':
         return (
           <LivenessCheck
-            tenant={tenant}
-            webhookUrl={tenantConfig.webhookUrl}
-            geolocation={geolocation}
-            confidenceThreshold={tenantConfig.livenessConfidenceThreshold}
-            reference={reference}
-            maxAttempts={tenantConfig.maxVerificationAttempts}
+            circuitId={circuitId}
+            thresholds={config.thresholds}
+            onComplete={handleStepComplete}
+          />
+        );
+      case 'ocr':
+        return (
+          <OCRVerification
+            circuitId={circuitId}
+            thresholds={config.thresholds}
+            onComplete={handleStepComplete}
           />
         );
       case 'compare-faces':
         return (
           <CompareFacesVerification
-            tenant={tenant}
-            webhookUrl={tenantConfig.webhookUrl}
-            geolocation={geolocation}
-            similarityThreshold={tenantConfig.compareFacesSimilarityThreshold}
-            reference={reference}
-            maxAttempts={tenantConfig.maxVerificationAttempts}
+            circuitId={circuitId}
+            thresholds={config.thresholds}
+            onComplete={handleStepComplete}
           />
         );
       case 'data-verification':
         return (
           <DataVerification
-            tenant={tenant}
-            webhookUrl={tenantConfig.webhookUrl}
-            geolocation={geolocation}
-            dataVerificationApiUrl={tenantConfig.dataVerificationApiUrl}
-            docRef={docRef}
-            requiresBack={tenantConfig.requiresBackDocument}
-            reference={reference}
-            maxAttempts={tenantConfig.maxVerificationAttempts}
+            circuitId={circuitId}
+            thresholds={config.thresholds}
+            onComplete={handleStepComplete}
           />
         );
       default:
-        // Unrecognized ?service= value — send them back to the landing
-        // rather than showing a broken or empty page.
-        return <ProductLanding />;
+        return <p>Step no reconocido: {currentStep}</p>;
     }
   };
 
   return (
     <ThemeProvider theme={theme}>
-      <View backgroundColor={tenantConfig.colors.background} minHeight="100vh">
+      <View backgroundColor={config.ui.colors.background} minHeight="100vh">
         <Flex direction="column" minHeight="100vh">
           <Header
-            title={tenantConfig.headerTitle}
-            logoUrl={tenantConfig.headerLogoUrl}
-            backgroundColor={tenantConfig.colors.headerBackground}
-            fontColor={tenantConfig.colors.headerFontColor}
-            align={tenantConfig.layout.headerAlign}
+            title={config.ui.headerTitle}
+            logoUrl={config.ui.headerLogoUrl}
+            backgroundColor={config.ui.colors.headerBackground}
+            fontColor={config.ui.colors.headerFontColor}
+            align={config.ui.layout.headerAlign}
           />
-
           <Flex
             maxWidth="800px"
             margin="0 auto"
@@ -147,15 +174,14 @@ function App() {
             padding={{ base: 'm', large: 'xl' }}
             flex="1"
           >
-            {renderService()}
+            {renderStep()}
           </Flex>
-
           <Footer
-            privacyPolicyUrl={tenantConfig.footerPrivacyPolicyUrl}
-            websiteUrl={tenantConfig.footerWebsiteUrl}
-            backgroundColor={tenantConfig.colors.footerBackground}
-            fontColor={tenantConfig.colors.footerFontColor}
-            align={tenantConfig.layout.footerAlign}
+            privacyPolicyUrl={config.ui.footerPrivacyPolicyUrl}
+            websiteUrl={config.ui.footerWebsiteUrl}
+            backgroundColor={config.ui.colors.footerBackground}
+            fontColor={config.ui.colors.footerFontColor}
+            align={config.ui.layout.footerAlign}
           />
         </Flex>
       </View>

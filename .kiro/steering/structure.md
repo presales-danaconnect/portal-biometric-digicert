@@ -2,109 +2,251 @@
 inclusion: always
 ---
 
-# Project Structure & Architecture
+# Estructura del Proyecto y Arquitectura
 
-## Folder Organization
+## Organización de Carpetas
 
-    identity-verification-sdk/
-    amplify/                          AWS Amplify Gen 2 backend
-      auth/resource.ts                Cognito Identity Pool (unauthenticated/guest access enabled)
-      backend.ts                      Main backend definition: registers functions, Function URLs, IAM policies
-      functions/
-        ocr-handler/                  Bedrock OCR + document validation
-          resource.ts                 defineFunction() config
-          handler.ts                  re-exports the real handler
-          ocr-handler.ts              actual Lambda logic
-          ocrPrompt.ts                Bedrock prompt, kept separate from handler logic
-          package.json                own dependencies (aws-sdk client-bedrock-runtime, etc.)
-        liveness-handler/              Rekognition Face Liveness session create/results
-          resource.ts, handler.ts, liveness-handler.ts, package.json
-        compare-faces-handler/         Document validation + Rekognition CompareFaces
-          resource.ts, handler.ts, compare-faces-handler.ts
-          documentValidationPrompt.ts  Bedrock prompt for "is this a real ID document" check
-          package.json
-        shared/                        Code imported by all three Lambdas
-          cors.ts                      getCorsHeaders(), reads PRODUCTION_ORIGIN env var
-          webhookNotifier.ts           notifyWebhook() - POSTs results to the tenant's webhook
-    src/                                React frontend
-      App.tsx                          Reads ?service, ?tenant, ?lang from the URL; routes to the right verification component; renders Header/Footer from tenant config
-      main.tsx                         Amplify.configure(outputs) + React root
-      components/
-        layout/
-          Header.tsx                  Tenant logo/title, configurable background/font color/alignment
-          Footer.tsx                  Tenant privacy policy/website links
-        verification/
-          AutoCamera.tsx               Self-contained camera capture with guide overlay and auto-capture timer
-          OCRVerification.tsx          Full OCR flow: capture front/back, submit, show results
-          LivenessCheck.tsx            Full Liveness flow: create session, FaceLivenessDetector, show confidence result
-          CompareFacesVerification.tsx Document capture + validation, then Liveness, then compare
-      config/
-        tenants.json                   Per-tenant config: branding, colors, thresholds, webhookUrl
-        tenantConfig.ts                getTenantConfig(tenantId) with fallback to "default"
-      services/
-        api.ts                         callOCRAPI() - talks to ocr-handler
-        liveness.ts                    createLivenessSession(), getLivenessResults() - talks to liveness-handler
-        compareFaces.ts                validateDocument(), compareFaces() - talks to compare-faces-handler
-        geolocation.ts                 getLocation() - browser geolocation + Nominatim reverse geocoding
-      hooks/
-        useGeolocation.ts               Captures location once on mount, kept in memory until sent to a webhook
-      i18n/
-        en.json, es.json               Translation dictionaries, one key per UI string
-        i18n.ts                        useTranslation() hook; resolves language from ?lang= URL param
-        livenessDictionary.ts          Separate dictionary for FaceLivenessDetector's own displayText prop
-    public/                             Static assets (tenant logos, etc.)
-    docs/
-      rate-limiting.md                 Notes on Lambda Function URL rate limiting options
-    amplify.yml                        CI/CD buildspec; each Lambda's deps must be installed here explicitly
-    .env                               Local-only, VITE_*_API_ENDPOINT values (gitignored)
+```
+portal-biometric-digicert/
+├── amplify/                              # AWS Amplify Gen 2 backend
+│   ├── auth/
+│   │   └── resource.ts                   # Cognito Identity Pool (guest access)
+│   ├── backend.ts                        # Main backend: funciones, URLs, IAM
+│   └── functions/
+│       ├── shared/                       # Código compartido entre Lambdas
+│       │   ├── cors.ts                   # getCorsHeaders(), lee PRODUCTION_ORIGIN
+│       │   └── webhookNotifier.ts        # notifyWebhook() - POST al webhook del channel
+│       ├── start_circuit/                # Crea circuito de verificación
+│       │   ├── resource.ts
+│       │   ├── handler.ts
+│       │   ├── start_circuit.ts          # Lógica principal
+│       │   └── package.json
+│       ├── ocr-handler/                  # Bedrock OCR + validación
+│       │   ├── resource.ts
+│       │   ├── handler.ts
+│       │   ├── ocr-handler.ts
+│       │   ├── ocrPrompt.ts
+│       │   └── package.json
+│       ├── liveness-handler/             # Rekognition Face Liveness
+│       │   ├── resource.ts
+│       │   ├── handler.ts
+│       │   ├── liveness-handler.ts
+│       │   └── package.json
+│       ├── compare-faces-handler/        # Rekognition CompareFaces
+│       │   ├── resource.ts
+│       │   ├── handler.ts
+│       │   ├── compare-faces-handler.ts
+│       │   ├── documentValidationPrompt.ts
+│       │   └── package.json
+│       ├── data-verification-handler/    # Comparación de datos sin AI externa
+│       │   ├── resource.ts
+│       │   ├── handler.ts
+│       │   ├── data-verification-handler.ts
+│       │   └── package.json
+│       └── webhook-dispatcher/            # Reintentos y routing de webhooks
+│           ├── resource.ts
+│           ├── handler.ts
+│           ├── webhook-dispatcher.ts
+│           └── package.json
+├── src/                                  # Frontend React
+│   ├── App.tsx                           # Lee ?circuit, ?lang; routing a servicios
+│   ├── main.tsx                          # Amplify.configure() + React root
+│   ├── config/
+│   │   └── tenants.ts                    # getTenantConfig() - fallback a default
+│   ├── services/
+│   │   ├── api.ts                        # callStartCircuit(), getCircuit()
+│   │   ├── ocr.ts                        # callOCRAPI()
+│   │   ├── liveness.ts                   # createSession(), getResults()
+│   │   ├── compareFaces.ts               # validateDocument(), compareFaces()
+│   │   └── dataVerification.ts           # verifyData()
+│   ├── hooks/
+│   │   └── useGeolocation.ts             # Captura geolocation una vez
+│   ├── i18n/
+│   │   ├── en.json, es.json              # Traducciones UI
+│   │   ├── i18n.ts                       # useTranslation(), resolve lang
+│   │   └── livenessDictionary.ts         # FaceLivenessDetector strings
+│   └── styles/
+│       └── global.css                    # Estilos globales (mínimos)
+├── docs/
+│   └── rate-limiting.md                  # Notas sobre rate limiting
+├── amplify.yml                           # CI/CD - cada Lambda necesita su línea
+├── .env                                  # Local: VITE_*_ENDPOINTS (gitignored)
+└── package.json                          # Frontend deps (npm install frontend)
+```
 
-## URL Parameter Resolution
+## Parámetros de URL
 
-### URL Structure
+### Estructura de URL para Verificación
 
-    https://your-domain.com/verify?service={service}&tenant={tenant_id}&lang={lang}
+```
+https://portal.digicert.com/verify?circuit={circuit_id}&lang={es|en}
+```
 
-### Parameter Processing Flow
+### Procesamiento en App.tsx (sin router library)
 
-This is handled entirely inside `App.tsx` on mount, with no router library:
+```typescript
+// Extraer parámetros
+const params = new URLSearchParams(window.location.search);
+const circuitId = params.get('circuit');      // Obligatorio
+const lang = params.get('lang') || 'en';      // Default: 'en'
 
-1. `URLSearchParams(window.location.search)` extracts `service`, `tenant`, `lang`
-2. `service` defaults to `"default"` (renders the demo home screen with three buttons) if missing or unrecognized
-3. `tenant` defaults to `"demo"` if missing
-4. `getTenantConfig(tenant)` looks up `tenants.json`; falls back to the `"default"` entry if the tenant ID isn't found
-5. `lang` defaults to `"en"` if missing or not `"es"`
-6. `App.tsx`'s `renderService()` switch renders the matching component: `OCRVerification`, `LivenessCheck`, `CompareFacesVerification`, or the demo home screen
+// Consultar circuito
+const circuit = await getCircuit(circuitId);
+// Validar: existe, no expirado, no completado
 
-### Tenant Resolution (real implementation)
+// Renderizar servicio según circuit.channel_type
+switch (circuit.channel_type) {
+  case 'liveness':      render <LivenessCheck />;
+  case 'ocr':           render <OCRVerification />;
+  case 'compare-faces': render <CompareFacesVerification />;
+  case 'data-verification': render <DataVerification />;
+  default:              showError('Canal desconocido');
+}
+```
 
-    // src/config/tenantConfig.ts
-    export function getTenantConfig(tenantId: string): TenantConfig {
-      return tenants[tenantId] || tenants['default'];
-    }
+## Tablas DynamoDB
 
-Tenant config is a plain JSON file committed to the repo (`src/config/tenants.json`), not environment variables and not a database. Adding or editing a tenant requires a code change and a redeploy.
+### Tabla: channels (configuración de canales)
 
-## Backend Request Flow
+```json
+{
+  "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+  "id_client": "digicert-001",
+  "code_client": "digicert",
+  "username": "admin_soporte",
+  "channel_type": "liveness",
+  "created_at": "2025-01-15T10:30:00Z",
+  "settings": {
+    "webhookUrl": "https://api.digicert.com/webhook/biometric",
+    "expiresInMinutes": 15,
+    "colors": {
+      "primary": "#0066CC",
+      "headerBackground": "#FFFFFF",
+      "footerBackground": "#F5F5F5",
+      "headerFontColor": "#333333",
+      "footerFontColor": "#666666"
+    },
+    "layout": {
+      "headerAlign": "left",
+      "footerAlign": "right"
+    },
+    "headerTitle": "DigiCert Identity Verification",
+    "headerLogoUrl": "/logos/digicert.png",
+    "footerPrivacyPolicyUrl": "https://digicert.com/privacy",
+    "footerWebsiteUrl": "https://digicert.com",
+    "livenessConfidenceThreshold": 80,
+    "compareFacesSimilarityThreshold": 85
+  }
+}
+```
 
-1. Frontend captures image(s) via `AutoCamera` (OCR, Compare Faces) or `FaceLivenessDetector` (Liveness, Compare Faces)
-2. Frontend calls its service's Lambda Function URL directly with `fetch`, passing `tenant`, `webhookUrl`, `geolocation` alongside the service-specific payload
-3. Lambda does the actual AWS AI work (Bedrock and/or Rekognition)
-4. Lambda calls `notifyWebhook()` (server-to-server, no CORS issue) to POST the result to the tenant's `webhookUrl`
-5. Lambda also returns a lighter-weight JSON response to the frontend so it can render the result in the UI
+### Tabla: ts_biometric_history (historial de verificaciones)
 
-## Key Architectural Decisions
+```json
+{
+  "history_id": "550e8400-e29b-41d4-a716-446655440001",
+  "circuit_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+  "channel_type": "liveness",
+  "status": "completed",
+  "person": {
+    "name": "Lizeth Castro",
+    "documentNumber": "27.600.962",
+    "email": "lcastro@danaconnect.com",
+    "birthDate": "1990-01-15"
+  },
+  "result": {
+    "confidence": 98.5,
+    "referenceImage": "base64...",
+    "passed": true
+  },
+  "created_at": "2025-01-15T10:30:00Z",
+  "expires_at": "2025-01-15T10:45:00Z",
+  "completed_at": "2025-01-15T10:35:00Z",
+  "geolocation": {
+    "latitude": 40.7128,
+    "longitude": -74.0060,
+    "city": "New York",
+    "country": "US"
+  }
+}
+```
 
-### One Lambda per service, no shared "API" Lambda
-Each verification service is a fully separate Lambda with its own Function URL, its own `package.json`/dependencies, and its own IAM permissions. This keeps blast radius small and lets each service scale/fail independently. The tradeoff: any code shared across them (CORS, webhook delivery) lives in `amplify/functions/shared/` and must be imported explicitly by each handler.
+**GSI para búsqueda por circuit_id:**
+```
+GSI1: PK = circuit_id, SK = created_at
+```
 
-### No API Gateway
-Lambda Function URLs are used instead of API Gateway, for simplicity. The known limitation is no built-in rate limiting (see `docs/rate-limiting.md`).
+## Endpoints de API Gateway
 
-### Webhook delivery happens server-to-server
-Lambdas notify the tenant's webhook directly. The browser never calls the tenant's webhook, both because tenant webhooks usually don't have CORS configured for browser calls, and to avoid exposing webhook URLs to the client.
+### API Pública (x-api-key por canal)
 
-### Tenant config as a committed JSON file (for now)
-Simple to reason about, no extra infrastructure, but requires a redeploy to add or edit a tenant. A database-backed version is a known future improvement, not yet built.
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | `/api/v2/biometric/start_circuit/{channel_id}` | Inicia circuito de verificación |
+| GET | `/api/v2/biometric/circuit/{circuit_id}` | Consulta estado del circuito |
 
-### Bedrock-based document validation before expensive/slow steps
-Both `ocr-handler` and `compare-faces-handler` validate with Bedrock that a captured photo is actually a real identity document before doing anything else (extracting fields, or running the Liveness+CompareFaces flow), so users get fast, clear feedback instead of a document Rekognition can't process meaningfully.
+### API Admin (x-admin-key, solo Soporte)
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | `/api/v2/admin/channel` | Crear nuevo channel |
+| GET | `/api/v2/admin/channel/{channel_id}` | Obtener configuración |
+| PUT | `/api/v2/admin/channel/{channel_id}` | Actualizar configuración |
+| GET | `/api/v2/admin/history` | Consultar historial de verificaciones |
+| GET | `/api/v2/admin/history/{circuit_id}` | Detalle de circuito específico |
+
+## Flujo de Request al Backend
+
+### Flujo start_circuit
+1. Cliente llama POST `/api/v2/biometric/start_circuit/{channel_id}` con x-api-key
+2. API Gateway valida API key y ruta
+3. Lambda start_circuit:
+   - Consulta DynamoDB channels (verifica channel_id + api_key)
+   - Genera circuit_id (UUID)
+   - Crea registro en ts_biometric_history con status "pending"
+   - Set expires_at = now() + 15 minutos
+   - Retorna { circuitId, link }
+4. Cliente recibe link y lo presenta al usuario final
+
+### Flujo de Verificación (frontend → Lambda del servicio)
+1. Frontend extrae circuit_id de URL
+2. Frontend consulta GET `/api/v2/biometric/circuit/{circuit_id}` para obtener configuración
+3. Frontend captura imágenes (AutoCamera o FaceLivenessDetector)
+4. Frontend llama a la Lambda del servicio (ocr/liveness/compare-faces/data-verification)
+5. Lambda procesa y actualiza ts_biometric_history
+6. Lambda envía webhook al webhookUrl del canal
+7. Lambda retorna resultado ligero al frontend
+
+## Decisiones Arquitectónicas Clave
+
+### Una Lambda por servicio + start_circuit + webhook_dispatcher
+Cada verificación tiene su propia Lambda con su Function URL, package.json, y permisos IAM. Esto:
+- Mantiene el blast radius pequeño
+- Permite escalar/fallar independientemente
+- Evita que una Lambda monolítica maneje todo
+
+### API Gateway con Custom Domain
+- URLs base: `https://api.portal.com/api/v2/biometric/...`
+- Custom domain configurado en producción
+- Variables de entorno para endpoints del frontend
+
+### DynamoDB para datos transaccionales
+- **channels:** Configuración de canales (lectura frecuente, escritura poco frecuente)
+- **ts_biometric_history:** Historial de verificaciones (lectura/escritura frecuente)
+- TTL en expires_at para limpieza automática de circuitos expirados
+
+### Webhooks server-to-server
+- Lambda envía POST al webhookUrl del canal
+- Browser NUNCA llama directamente al webhook del cliente
+- Evita CORS y expone menos información al cliente
+
+### Channel settings como JSON en DynamoDB
+- Flexible para agregar nuevas configuraciones sin migrar schema
+- Diferentes channels pueden tener diferentes settings
+- Fallback a valores por defecto si no viene un setting específico
+
+### Datos de person en start_circuit
+- Required para todos los servicios (incluyendo liveness sin OCR)
+- Permite data-verification sin reingresar datos
+- Se guarda en ts_biometric_history y se envía al webhook

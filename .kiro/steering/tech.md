@@ -2,63 +2,182 @@
 inclusion: always
 ---
 
-# Technical Stack & Architecture
+# Stack Tecnológico y Arquitectura
 
-## Stack Overview
-- Frontend: React 18 + Vite 7, TypeScript 5.9
-- UI library: @aws-amplify/ui-react (Card, Flex, Alert, etc.) + @aws-amplify/ui-react-liveness (FaceLivenessDetector)
-- Backend: AWS Amplify Gen 2, three independent Lambdas behind Function URLs (no API Gateway, no GraphQL/AppSync)
-- Auth: Amazon Cognito Identity Pool, unauthenticated (guest) access only, no login UI anywhere in the app
-- Deployment: AWS Amplify Hosting, CI/CD via amplify.yml
+## Stack Principal
 
-## AWS Services Integration
+### Frontend
+- **Framework:** React 18 + Vite 7
+- **Lenguaje:** TypeScript 5.9
+- **UI Library:** @aws-amplify/ui-react
+  - Componentes: Card, Flex, Heading, Text, Badge, Button, Divider, Loader, Image, Alert
+  - No usar HTML/CSS raw ni Tailwind
+- **Liveness:** @aws-amplify/ui-react-liveness (FaceLivenessDetector component)
+
+### Backend
+- **Infraestructura:** AWS Amplify Gen 2
+- **Compute:** AWS Lambda (múltiples funciones independientes)
+- **API:** API Gateway con URLs generadas por AWS (custom domain configurado en producción)
+- **Base de Datos:** Amazon DynamoDB
+- **Auth:** Amazon Cognito (solo guest/unauthenticated access)
+
+## Servicios AWS Integrados
 
 ### Amazon Rekognition
-Used for: Face Liveness detection and face comparison
-- CreateFaceLivenessSession / GetFaceLivenessSessionResults: liveness challenge + confidence score + reference image (returned directly in the API response, no S3 storage configured)
-- CompareFaces: matches the Liveness reference image against a captured document photo
-- FaceLivenessDetector (frontend component) talks to Rekognition directly over WebSocket using temporary Cognito guest credentials; it never touches our Lambdas for the live video stream itself
+- **Face Liveness:** `CreateFaceLivenessSession` y `GetFaceLivenessSessionResults`
+  - Retorna confidence score y reference image en la respuesta (no S3)
+  - FaceLivenessDetector comunica directamente con Rekognition via WebSocket
+  - NO pasa por nuestras Lambdas para el stream de video
+- **Compare Faces:** `CompareFaces`
+  - Compara referencia del liveness con foto del documento
 
-### AWS Bedrock (Claude Sonnet)
-Used for two purposes:
-- OCR and structured document extraction (ocr-handler): given front/back document images, extracts documentNumber, country, documentType, birthDate, names, expirationDate, gender, nationality
-- Document validation (both ocr-handler and compare-faces-handler): before extracting/comparing anything, Bedrock is asked to classify whether a captured photo is actually a valid identity document; if not, the request is rejected with a specific error code instead of returning empty fields
+### AWS Bedrock (Claude Sonnet 4.5 Multimodal)
+- **OCR Handler:** Extracción de datos estructurados de documentos
+  - Extrae: documentType, country, documentNumber, names, birthDate, expirationDate, gender, nationality
+  - Input: imágenes front/back del documento (base64 JPEG)
+  - Output: JSON estructurado con datos del documento
+- **Validación de Documentos:**
+  - Bedrock clasifica si la imagen es un documento de identidad válido
+  - Se ejecuta ANTES de OCR o CompareFaces para fail-fast en documentos inválidos
+  - Rechaza con error específico si no es un documento válido
 
-### AWS Amplify Gen 2
-- Each Lambda (ocr-handler, liveness-handler, compare-faces-handler) is defined independently via defineFunction(), with its own package.json/dependencies
-- Function URLs (authType NONE) expose each Lambda directly; CORS is handled per-handler via a shared amplify/functions/shared/cors.ts
-- IAM permissions are scoped per-function in backend.ts (e.g. only compare-faces-handler gets both bedrock:InvokeModel and rekognition:CompareFaces)
-- No AppSync, no DynamoDB, no GraphQL anywhere in this project
+### Amazon DynamoDB (Tablas)
 
-## Technical Constraints & Decisions
+#### Tabla: channels
+```
+PK: channel_id (UUID)
+Atributos:
+- id_client: string
+- code_client: string
+- username: string
+- channel_type: "liveness" | "ocr" | "compare-faces" | "data-verification"
+- created_at: string (ISO 8601)
+- settings: map (JSON con webhookUrl, colores, header, footer, thresholds, etc.)
+```
 
-### Tenant Configuration
-- Current state: tenant config (branding, colors, thresholds, webhookUrl) lives in a committed JSON file (src/config/tenants.json), not environment variables and not a database
-- Future consideration: move to a database if the number of tenants or frequency of changes grows enough to make redeploys impractical
+#### Tabla: ts_biometric_history
+```
+PK: history_id (UUID)
+GSI1: circuit_id (para búsqueda rápida por circuit)
+Atributos:
+- channel_id: string (FK a channels)
+- channel_type: string
+- status: "pending" | "completed" | "failed"
+- person: map (name, documentNumber, email, birthDate)
+- result: map (resultado del servicio)
+- created_at: string
+- expires_at: string (now() + 15 minutos)
+- completed_at: string (nullable)
+```
 
-### Security Restrictions
-1. Tenant naming: avoid predictable identifiers like "company_id" in the URL
-2. Webhook delivery happens server-to-server from each Lambda, never from the browser, both to avoid CORS issues with tenant webhooks and to avoid exposing webhook URLs client-side
-3. CORS allow-list is environment-driven (PRODUCTION_ORIGIN), not hardcoded per handler
-4. Webhook signature verification is not implemented yet; tenants receive unsigned POST requests
+### Amazon Cognito
+- **Identity Pool:** Unauthenticated/guest access enabled
+- **Credenciales:** Otorgadas al frontend para que FaceLivenessDetector hable directamente con Rekognition
+- **No hay login UI:** Todo el sistema es guest, sin autenticación de usuario
 
-### Performance
-- AutoCamera auto-captures after a configurable number of seconds (no manual shutter button)
-- Images are sent as base64 JPEG, capped at 5MB per image at the Lambda level
-- Bedrock document validation runs before the (slower) full OCR extraction or Rekognition CompareFaces call, so invalid documents fail fast
+## Endpoints de API
 
-### Internationalization
-- Implemented: src/i18n/en.json and es.json, selected via ?lang= URL param, covering all app UI strings
-- FaceLivenessDetector's own built-in strings are translated separately via src/i18n/livenessDictionary.ts, since that component has its own displayText prop schema unrelated to our i18n keys
+### API Pública (protegida por x-api-key)
+```
+POST /api/v2/biometric/start_circuit/{channel_id}
+x-api-key: {api_key_del_channel}
+Content-Type: application/json
 
-### Development Guidelines
-1. Full TypeScript across frontend and all three Lambdas
-2. Every new Lambda function needs its own package.json, a local npm install, and a matching line in amplify.yml's backend.phases.build.commands, or production builds fail even though local sandbox runs work
-3. CloudWatch logging with source IP is implemented in each handler for audit purposes
-4. No automated test suite exists yet
+{
+  "person": {
+    "name": string,
+    "documentNumber": string,
+    "email": string,
+    "birthDate": string (YYYY-MM-DD)
+  }
+}
+```
+**Respuesta:**
+```json
+{
+  "circuitId": "uuid",
+  "link": "https://.../verify?circuit=uuid"
+}
+```
 
-## Known Gaps / Future Roadmap
-1. Move tenant config from a committed JSON file to a database (DynamoDB or similar), to allow adding/editing tenants without a redeploy
-2. Webhook signature verification, so tenants can validate requests actually came from this system
-3. Rate limiting on Lambda Function URLs (see docs/rate-limiting.md for options; nothing implemented yet)
-4. Automated testing (unit + integration)
+### API Admin (protegida por x-admin-key)
+- Acceso interno únicamente (Postman, no expuesta al público)
+- Creación de channels, consulta de history, gestión de configuración
+
+## CORS y Configuración de Producción
+
+- **CORS allow-list:** Basado en variable de entorno PRODUCTION_ORIGIN
+- **No hardcodeado:** Cada handler lee la variable de entorno
+- **Webhook delivery:** Server-to-server desde las Lambdas (evita CORS del cliente)
+
+## Restricciones de Seguridad
+
+1. **Identificadores de canal:** Evitar predictibles como "company_id" en URLs
+2. **API keys:**
+   - `api_key`: Para start_circuit (pública)
+   - `admin_key`: Para operaciones internas (solo Soporte, via Postman)
+3. **Circuit ID:** De un solo uso, expira en 15 minutos
+4. **Webhook:** Sin firma verificable por ahora (known gap)
+5. **Webhooks:** Se entregan server-to-server, nunca desde el browser
+
+## Rendimiento y Límites
+
+- **AutoCamera:** Auto-captura después de segundos configurables (no shutter button manual)
+- **Imágenes:** Base64 JPEG, máximo 5MB por imagen (validado en Lambda)
+- **Bedrock validation:** Se ejecuta antes del OCR/CompareFaces para fail-fast en documentos inválidos
+
+## Configuración por Channel (settings en DynamoDB)
+
+```json
+{
+  "webhookUrl": "https://client.com/webhook",
+  "expiresInMinutes": 15,
+  "colors": {
+    "primary": "#0066CC",
+    "headerBackground": "#FFFFFF",
+    "footerBackground": "#F5F5F5",
+    "headerFontColor": "#333333",
+    "footerFontColor": "#666666"
+  },
+  "layout": {
+    "headerAlign": "left" | "center" | "right",
+    "footerAlign": "left" | "center" | "right"
+  },
+  "headerTitle": "Client Verification",
+  "headerLogoUrl": "/logos/client.png",
+  "footerPrivacyPolicyUrl": "https://client.com/privacy",
+  "footerWebsiteUrl": "https://client.com",
+  "livenessConfidenceThreshold": 80,
+  "compareFacesSimilarityThreshold": 80
+}
+```
+
+## Guías de Desarrollo
+
+1. **TypeScript:** Obligatorio en frontend y todas las Lambdas
+2. **Nueva Lambda:** Requiere package.json propio, npm install local, y entrada en amplify.yml (backend.phases.build.commands)
+3. **Logging:** CloudWatch con IP de origen para auditoría
+4. **Tests:** No existe suite automatizada aún (known gap)
+
+## Dependencias de Paquetes (por función)
+
+```
+ocr-handler:
+- @aws-sdk/client-bedrock-runtime
+
+liveness-handler:
+- (sin AWS SDK específico, usa credenciales Cognito del frontend)
+
+compare-faces-handler:
+- @aws-sdk/client-rekognition
+
+shared (cors, webhookNotifier):
+- (utiliza fetch nativo de Node 18+)
+```
+
+## Gaps Conocidos y Roadmap
+
+1. **Configuración de channels:** Actualmente en DynamoDB (correcto), pero podría migrarse a tabla dedicada si crece
+2. **Firma de webhooks:** No implementada aún, clients reciben POST sin verificación
+3. **Rate limiting:** No implementado en Lambda Function URLs (API Gateway sí lo tendría)
+4. **Tests automatizados:** No existen (unit + integration)

@@ -2,73 +2,193 @@
 inclusion: always
 ---
 
-# UI Standards & Design Guidelines
+# Estándares de UI y Guía de Diseño
 
-## Design Philosophy
-- Minimalist, professional, trustworthy appearance for identity verification
-- Neutral base design that adapts per tenant via configurable colors
-- Mobile-first, works across device sizes
-- Camera-first: every capture step is done live through the device camera, never file upload
+## Filosofía de Diseño
+- Minimalista, profesional, confiable para verificación de identidad
+- Diseño base neutral que se adapta por channel mediante colores configurables
+- Mobile-first, funciona en todos los tamaños de pantalla
+- Cámara primero: toda captura se hace en vivo con la cámara del dispositivo, nunca upload de archivos
 
-## Component Library
+## Biblioteca de Componentes
 
-All UI is built with @aws-amplify/ui-react components, not raw HTML/CSS and not Tailwind. Common components used throughout: Card (variation="elevated" for the main card, variation="outlined" for nested content areas), Flex, Heading, Text, Badge, Button (variation="primary" / "warning" / default), Divider, Loader, Image, Alert.
+Toda la UI se construye con componentes de @aws-amplify/ui-react, NO HTML/CSS raw ni Tailwind.
 
-FaceLivenessDetector comes from @aws-amplify/ui-react-liveness and renders its own internal camera UI; we only control its displayText strings (see livenessDictionary.ts) and its container.
+**Componentes usados frecuentemente:**
+- `Card` (variation="elevated" para el card principal, variation="outlined" para contenido anidado)
+- `Flex`, `Heading`, `Text`, `Badge`
+- `Button` (variation="primary" / "warning" / default)
+- `Divider`, `Loader`, `Image`
+- `Alert` (para mensajes de éxito/error)
 
-## Layout Structure
+**FaceLivenessDetector:**
+- Viene de @aws-amplify/ui-react-liveness
+- Renderiza su propia UI de cámara internamente
+- Solo controlamos sus strings mediante `displayText` (ver livenessDictionary.ts)
 
-### Fixed 3-Section Layout
-Header (always rendered) -> Content (service-specific) -> Footer (always rendered). There is no "enabled/disabled" flag for Header or Footer; every tenant always shows both, configured via tenants.json (a tenant can pass an empty headerTitle to effectively hide the text and show only a logo).
+## Estructura de Layout
 
-### Tenant Configuration (real schema, in src/config/tenants.json)
-Each tenant entry provides:
-- headerTitle, headerLogoUrl
-- footerPrivacyPolicyUrl, footerWebsiteUrl
-- webhookUrl
-- livenessConfidenceThreshold, compareFacesSimilarityThreshold (numbers, 0-100)
-- colors: primary, headerBackground, footerBackground, headerFontColor, footerFontColor
-- layout: headerAlign, footerAlign ("left" | "center" | "right")
+### Layout Fijo de 3 Secciones
 
-Header and Footer receive these as props (backgroundColor, fontColor, align) and apply them directly as Amplify UI style props; there is no separate CSS theming layer.
+```
+┌─────────────────────────────────────┐
+│           HEADER (opcional)         │  ← Configurable por channel
+├─────────────────────────────────────┤
+│                                     │
+│           CONTENT                   │  ← Servicio específico (liveness/ocr/compare-faces/data-verification)
+│                                     │
+├─────────────────────────────────────┤
+│           FOOTER (opcional)         │  ← Configurable por channel
+└─────────────────────────────────────┘
+```
 
-## Result Messaging (unified pattern across all 3 services)
+### Header y Footer (Controlado por Channel)
 
-Every service (OCRVerification, LivenessCheck, CompareFacesVerification) shows outcome messages the same way: an Alert placed immediately below the Divider that separates the title/badge area from the content Card.
-- Success: <Alert variation="success">
-- Failure/error: <Alert variation="error">, dismissible where appropriate
-- Never use the browser's native alert(); errors and results always render inline in the UI
+**Header:**
+- Se renderiza SIEMPRE, pero puede estar "vacío"
+- Configuración tomada de `channel.settings` en DynamoDB:
+  - `headerTitle`: Texto del header (si está vacío, muestra solo el logo)
+  - `headerLogoUrl`: URL del logo del cliente
+  - `headerBackground`: Color de fondo
+  - `headerFontColor`: Color del texto
+  - `headerAlign`: "left" | "center" | "right"
 
-## Service-Specific UI Patterns (as actually implemented)
+**Footer:**
+- Se renderiza SIEMPRE, pero puede estar "vacío"
+- Configuración tomada de `channel.settings`:
+  - `footerPrivacyPolicyUrl`: Link a política de privacidad
+  - `footerWebsiteUrl`: Link al sitio del cliente
+  - `footerBackground`: Color de fondo
+  - `footerFontColor`: Color del texto
+  - `footerAlign`: "left" | "center" | "right"
 
-### OCR Verification
-- AutoCamera captures front, then back, with a rectangle guide overlay
-- After each capture: preview + Continue/Retake buttons (no auto-advance)
-- Submit button calls Bedrock; results render as a labeled list (Document Type, Country, Document #, etc.)
-- If Bedrock determines the image isn't a valid ID document, this is shown via the unified Alert error pattern, not a generic failure
+**No hay flag de enabled/disabled:** Si un canal no tiene configurado un elemento, simplemente no muestra contenido textual pero el espacio del layout se preserva (o se oculta completamente si both title y logo están vacíos en el header).
 
-### Liveness Check
-- Session is created automatically on mount (no manual "Start" button)
-- FaceLivenessDetector renders once a sessionId exists
-- Result: confidence score compared against the tenant's livenessConfidenceThreshold to decide success/fail (Rekognition's own "SUCCEEDED" status only means the technical analysis completed, not that the person passed)
-- Reference image is shown alongside the confidence score
+## Patrón de Mensajes de Resultado (unificado)
 
-### Compare Faces
-- Step 1: capture ID document photo (rectangle guide)
-- Step 2: Bedrock validates it's a real ID document before continuing; if invalid, shows the captured photo plus a manual Retake button (camera does not auto-restart)
-- Step 3: preview captured document with Continue/Retake
-- Step 4: Liveness (same as standalone Liveness flow)
-- Step 5: Rekognition CompareFaces between the document photo and the Liveness reference image; result shows similarity % and match/no-match via the unified Alert pattern
+Los 3 servicios de verificación muestran mensajes de resultado de la misma manera:
 
-## Camera Capture (AutoCamera component)
-- Auto-activates on mount, requests camera permission
-- Guide overlay: rectangle (documents) or circle (faces), depending on guideType prop
-- Auto-captures after a configurable number of seconds with a visible countdown/progress indicator
-- Handles and surfaces specific error states: permission denied, no camera found, generic error, each with a retry action
+```
+┌─────────────────────────────┐
+│     Título del Servicio     │
+│     Badge: Completado       │
+├─────────────────────────────┤
+│  ┌───────────────────────┐  │
+│  │   ALERT (resultado)   │  │  ← Alert VA aquí, debajo del Divider
+│  └───────────────────────┘  │
+│                             │
+│   Contenido del servicio    │
+│   (imágenes, datos, etc.)   │
+│                             │
+└─────────────────────────────┘
+```
 
-## Internationalization
-Every user-facing string goes through the t() function from src/i18n/i18n.ts, sourced from en.json/es.json. Do not hardcode UI strings in components. FaceLivenessDetector's built-in strings are a separate exception, translated via livenessDictionary.ts due to that component's own prop schema.
+- **Éxito:** `<Alert variation="success">`
+- **Error/Fracaso:** `<Alert variation="error">`, dismissible cuando corresponda
+- **NUNCA usar alert() del navegador:** Todos los resultados e errores se renderizan inline
 
-## Accessibility
-- Retry/action buttons meet minimum touch target sizing
-- Alerts are used (not color alone) to convey success/failure, keeping a text label alongside the color
+## Patrones de UI por Servicio
+
+### Liveness Check (Rekognition)
+1. **Sin botón de "Start":** La sesión se crea automáticamente al montar el componente
+2. **FaceLivenessDetector:** Se renderiza una vez que existe sessionId
+3. **Resultado:**
+   - Mostrar confidence score de Rekognition
+   - Comparar contra `settings.livenessConfidenceThreshold` (configurable por channel)
+   - Mostrar imagen de referencia junto al score
+   - Alert de éxito/fracaso basado en el threshold
+
+### OCR Verification (Bedrock)
+1. **Paso 1:** Capturar frente del documento (guía rectangular)
+2. **Paso 2:** Capturar reverso del documento (guía rectangular)
+3. **Después de cada captura:** Preview + botones Continue/Retake (no auto-advance)
+4. **Submit:** Envía ambas imágenes a Bedrock
+5. **Resultados:** Lista de campos extraídos con labels (Tipo de Documento, País, Número, etc.)
+6. **Documento inválido:** Si Bedrock determina que no es un ID válido, mostrar Alert de error (NO failure genérico)
+
+### Compare Faces (Rekognition)
+1. **Paso 1:** Capturar foto del documento de identidad (guía rectangular)
+2. **Paso 2:** Bedrock valida que sea un documento válido
+   - Si es inválido: mostrar foto capturada + botón Retake manual
+   - NO auto-reiniciar la cámara
+3. **Paso 3:** Preview del documento + Continue/Retake
+4. **Paso 4:** Liveness check (mismo flujo que servicio standalone)
+5. **Paso 5:** Rekognition CompareFaces
+   - Comparar referencia del liveness vs foto del documento
+   - Mostrar % de similitud
+   - Alert de match/no-match
+
+### Data Verification (sin AI externa)
+1. Solo compara datos de `person` (enviados en start_circuit) con los datos del documento
+2. No usa Rekognition ni Bedrock
+3. Muestra resultado de la comparación (match/no-match por campo)
+
+## Componente AutoCamera
+
+- **Auto-activación:** Solicita permiso de cámara al montar
+- **Guía overlay:**
+  - Rectángulo: para documentos
+  - Círculo: para rostros
+- **Auto-capture:** Después de N segundos configurables (con indicador de countdown visible)
+- **Estados de error:**
+  - Permiso denegado → retry action
+  - Cámara no encontrada → retry action
+  - Error genérico → retry action
+
+## Colores por Channel
+
+Los colores se leen de `channel.settings.colors` y se aplican directamente como props de Amplify UI:
+
+```json
+{
+  "colors": {
+    "primary": "#0066CC",
+    "headerBackground": "#FFFFFF",
+    "footerBackground": "#F5F5F5",
+    "headerFontColor": "#333333",
+    "footerFontColor": "#666666"
+  }
+}
+```
+
+**NO hay capa separada de CSS theming:** Los colores van directos a los componentes como `backgroundColor`, `color`, etc.
+
+## Configuración del Channel (DynamoDB)
+
+```json
+{
+  "channel_id": "uuid",
+  "channel_type": "liveness",
+  "settings": {
+    "webhookUrl": "https://...",
+    "expiresInMinutes": 15,
+    "colors": { ... },
+    "layout": {
+      "headerAlign": "left" | "center" | "right",
+      "footerAlign": "left" | "center" | "right"
+    },
+    "headerTitle": "DigiCert Verification",
+    "headerLogoUrl": "/logos/digicert.png",
+    "footerPrivacyPolicyUrl": "https://digicert.com/privacy",
+    "footerWebsiteUrl": "https://digicert.com",
+    "livenessConfidenceThreshold": 80,
+    "compareFacesSimilarityThreshold": 85
+  }
+}
+```
+
+## Internacionalización (i18n)
+
+- **Keys de UI:** Todas las strings de la interfaz van en `en.json` / `es.json`
+- **Selección de idioma:** Parametro `?lang=` en la URL (default: `en`)
+- **Función t():** Usar `t('key')` para todas las strings visibles
+- **FaceLivenessDetector:** Sus strings internas se traducen por separado en `livenessDictionary.ts` (no usa las keys de en.json)
+
+**NO hardcodear strings en componentes:** Todo pasa por el sistema de i18n.
+
+## Accesibilidad
+
+- **Botones de retry/action:** Cumplen con tamaño mínimo de touch target
+- **Alerts:** Con color + texto label (NO confiar solo en color)
+- **Contraste:** Colores deben pasar WCAG AA mínimo
+- **Focus states:** Elementos interactivos tienen estado de focus visible

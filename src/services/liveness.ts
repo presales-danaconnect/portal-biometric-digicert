@@ -1,11 +1,6 @@
-/**
- * Liveness Service
- * 
- * Talks to the Lambda that creates and resolves Face Liveness
- * sessions via Amazon Rekognition.
- */
+import { processCircuit } from './biometricApi';
 
-const API_ENDPOINT = import.meta.env.VITE_LIVENESS_API_ENDPOINT || '/api/liveness';
+const LIVENESS_API_URL = import.meta.env.VITE_LIVENESS_API_URL || '';
 
 export interface LivenessResultData {
   status: string;
@@ -13,63 +8,44 @@ export interface LivenessResultData {
   referenceImage: string | null;
 }
 
-export interface CreateSessionResponse {
-  success: boolean;
-  sessionId?: string;
-  error?: string;
-}
-
-export interface GetResultsResponse {
-  success: boolean;
-  data?: LivenessResultData;
-  error?: string;
-}
-
-export async function createLivenessSession(): Promise<CreateSessionResponse> {
+export async function createLivenessSession(): Promise<{ success: boolean; sessionId?: string; error?: string }> {
   try {
-    const response = await fetch(API_ENDPOINT, {
+    const response = await fetch(LIVENESS_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'create' }),
     });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error (${response.status}): ${errorText}`);
-    }
+    if (!response.ok) throw new Error(`API error (${response.status})`);
     return response.json();
   } catch (error) {
-    console.error('Liveness create session error:', error);
-    throw error;
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
-export async function getLivenessResults(
+export async function submitLivenessResult(
+  circuitId: string,
   sessionId: string,
-  tenant: string,
-  webhookUrl?: string,
-  geolocation?: string | null,
-  reference?: string | null
-): Promise<GetResultsResponse> {
+  geolocation?: string | null
+): Promise<{ success: boolean; data?: LivenessResultData; error?: string }> {
   try {
-    const response = await fetch(API_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'results',
-        sessionId,
-        tenant,
-        webhookUrl,
-        geolocation,
-        reference,
-      }),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error (${response.status}): ${errorText}`);
-    }
-    return response.json();
+    const result = await processCircuit(
+      circuitId,
+      'liveness',
+      { sessionId },
+      geolocation || undefined
+    );
+    return {
+      success: true,
+      data: {
+        status: (result.stepResult as any)?.success ? 'SUCCEEDED' : 'FAILED',
+        confidence: (result.stepResult as any)?.confidence || 0,
+        referenceImage: null,
+      },
+    };
   } catch (error) {
-    console.error('Liveness get results error:', error);
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }
