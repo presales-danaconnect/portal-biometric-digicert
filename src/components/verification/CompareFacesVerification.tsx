@@ -21,12 +21,13 @@ import { useAttemptTracker } from '../../hooks/useAttemptTracker';
 import outputs from '../../../amplify_outputs.json';
 
 interface CompareFacesVerificationProps {
-  tenant: string;
-  webhookUrl?: string;
+  circuitId: string;
+  thresholds: {
+    compareFacesSimilarityThreshold: number;
+    maxAttempts: number;
+  };
+  onComplete: () => void;
   geolocation?: string | null;
-  similarityThreshold: number;
-  reference?: string | null;
-  maxAttempts?: number;
 }
 
 type Step = 'document' | 'validating' | 'documentInvalid' | 'documentPreview' | 'liveness' | 'comparing' | 'done';

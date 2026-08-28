@@ -2,10 +2,14 @@ import { useState, useEffect } from 'react';
 import {
   Flex,
   View,
+  Loader,
+  Text,
   ThemeProvider,
 } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import { getConfig, CircuitConfig } from './services/biometricApi';
+import { useGeolocation } from './hooks/useGeolocation';
+import { useTranslation } from './i18n/i18n';
 import { OCRVerification } from './components/verification/OCRVerification';
 import { LivenessCheck } from './components/verification/LivenessCheck';
 import { CompareFacesVerification } from './components/verification/CompareFacesVerification';
@@ -14,6 +18,8 @@ import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 
 function App() {
+  const { t } = useTranslation();
+  const geolocation = useGeolocation();
   const urlParams = new URLSearchParams(window.location.search);
   const circuitId = urlParams.get('circuit');
 
@@ -25,7 +31,7 @@ function App() {
 
   useEffect(() => {
     if (!circuitId) {
-      setError('Circuito no válido. Por favor verifica el enlace.');
+      setError(t('circuit.invalid'));
       setLoading(false);
       return;
     }
@@ -42,7 +48,7 @@ function App() {
         setLoading(false);
       })
       .catch(() => {
-        setError('No se pudo cargar la verificación. El enlace puede haber expirado.');
+        setError(t('circuit.error'));
         setLoading(false);
       });
   }, [circuitId]);
@@ -59,17 +65,66 @@ function App() {
 
   if (loading) {
     return (
-      <View minHeight="100vh" display="flex" alignItems="center" justifyContent="center">
-        <p>Cargando...</p>
-      </View>
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px" }}>
+        <Loader size="large" />
+        <Text variation="tertiary">{t('circuit.loading')}</Text>
+      </div>
     );
   }
 
   if (error || !config || !circuitId) {
+    const isCompleted = error?.includes('completed') || error?.includes('completada');
+
     return (
-      <View minHeight="100vh" display="flex" alignItems="center" justifyContent="center">
-        <p>{error || 'Enlace no válido'}</p>
-      </View>
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f1f5f9',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '24px',
+          padding: '48px 40px',
+          maxWidth: '400px',
+          width: '100%',
+          textAlign: 'center',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)'
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '20px',
+            backgroundColor: isCompleted ? '#f0fdf4' : '#fff7ed',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 28px',
+            fontSize: '32px'
+          }}>
+            {isCompleted ? '✅' : !circuitId ? '🔗' : '⚠️'}
+          </div>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            color: '#0f172a',
+            marginBottom: '10px',
+          }}>
+            {isCompleted ? t('circuit.expired') : !circuitId ? t('circuit.invalid') : t('circuit.error')}
+          </h2>
+          <p style={{
+            fontSize: '13px',
+            color: '#94a3b8',
+            lineHeight: '1.6',
+            marginBottom: '0'
+          }}>
+            {t('circuit.contactSupport')}
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -99,7 +154,9 @@ function App() {
           },
           loader: {
             strokeFilled: { value: config.ui.colors.primary },
-            linear: { strokeFilled: { value: config.ui.colors.primary } },
+            linear: {
+              strokeFilled: { value: config.ui.colors.primary },
+            },
           },
         },
       },
@@ -125,6 +182,7 @@ function App() {
             circuitId={circuitId}
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
+            geolocation={geolocation}
           />
         );
       case 'ocr':
@@ -133,6 +191,8 @@ function App() {
             circuitId={circuitId}
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
+            geolocation={geolocation}
+            primaryColor={config.ui.colors.primary}
           />
         );
       case 'compare-faces':
@@ -165,7 +225,8 @@ function App() {
             logoUrl={config.ui.headerLogoUrl}
             backgroundColor={config.ui.colors.headerBackground}
             fontColor={config.ui.colors.headerFontColor}
-            align={config.ui.layout.headerAlign}
+            align={config.ui.layout.headerAlign as 'left' | 'right' | 'center'}
+            primaryColor={config.ui.colors.primary}
           />
           <Flex
             maxWidth="800px"
@@ -181,7 +242,7 @@ function App() {
             websiteUrl={config.ui.footerWebsiteUrl}
             backgroundColor={config.ui.colors.footerBackground}
             fontColor={config.ui.colors.footerFontColor}
-            align={config.ui.layout.footerAlign}
+            align={config.ui.layout.footerAlign as 'left' | 'right' | 'center'}
           />
         </Flex>
       </View>

@@ -20,7 +20,7 @@
     "gender": "Gender",
     "nationality": "Nationality",
     "processingError": "Error processing document",
-    "notADocument": "The images do not show a valid identity document. Please try again.",
+    "notADocument": "The image does not appear to be a valid document. Please try again.",
     "instructions": "Make sure your ID is well lit and fully visible.",
     "confidence": "Confidence",
     "lowConfidence": "The document image quality was too low to extract data reliably. Please retake with better lighting and focus.",
@@ -30,7 +30,9 @@
       "back": "Position DNI back side",
       "backFreezed": "Back side captured",
       "done": "Ready for OCR processing"
-    }
+    },
+    "captureFront": "Place the front of your ID in the frame",
+    "captureBack": "Place the back of your ID in the frame"
   },
   "liveness": {
     "title": "Face Liveness Detection",
@@ -108,7 +110,9 @@
   "common": {
     "error": "Error",
     "unknownError": "Unknown error",
-    "maxAttemptsReached": "You've reached the maximum number of attempts. Please contact support."
+    "maxAttemptsReached": "You've reached the maximum number of attempts. Please contact support.",
+    "retake": "Retake",
+    "continue": "Continue"
   },
   "camera": {
     "activating": "Activating camera...",
@@ -191,5 +195,13 @@
     "finalSub": "No signup. No contract. Just open the link.",
     "finalBtnPrefix": "Try",
     "footerPowered": "Powered by AWS Bedrock & Rekognition"
+  },
+  "circuit": {
+    "notFound": "This verification link is invalid or does not exist.",
+    "expired": "This verification has already been completed.",
+    "loading": "Loading verification...",
+    "error": "Unable to load verification. Please check your link.",
+    "invalid": "Invalid verification link.",
+    "contactSupport": "If you believe this is an error, please contact support."
   }
 }

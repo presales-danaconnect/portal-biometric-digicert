@@ -20,8 +20,8 @@
     "gender": "Género",
     "nationality": "Nacionalidad",
     "processingError": "Error al procesar el documento",
-    "notADocument": "Las imágenes no muestran un documento de identidad válido. Intenta de nuevo.",
-    "instructions": "Asegúrate de que tu documento esté bien iluminado y completamente visible.",
+    "notADocument": "La imagen no parece ser un documento válido. Por favor intenta de nuevo.",
+    "instructions": "Asegúrate que el documento esté bien iluminado y visible.",
     "confidence": "Confianza",
     "lowConfidence": "La calidad de la imagen del documento fue muy baja para extraer datos de forma confiable. Por favor repite la foto con mejor iluminación y enfoque.",
     "steps": {
@@ -30,7 +30,9 @@
       "back": "Posiciona el reverso del documento",
       "backFreezed": "Reverso capturado",
       "done": "Listo para procesar OCR"
-    }
+    },
+    "captureFront": "Coloca el frente de tu documento en el recuadro",
+    "captureBack": "Coloca el reverso de tu documento en el recuadro"
   },
   "liveness": {
     "title": "Detección de Vida Facial",
@@ -108,7 +110,9 @@
   "common": {
     "error": "Error",
     "unknownError": "Error desconocido",
-    "maxAttemptsReached": "Has alcanzado el número máximo de intentos. Por favor contacta a soporte."
+    "maxAttemptsReached": "Has alcanzado el número máximo de intentos. Por favor contacta a soporte.",
+    "retake": "Retomar",
+    "continue": "Continuar"
   },
   "camera": {
     "activating": "Activando cámara...",
@@ -191,5 +195,13 @@
     "finalSub": "Sin registro. Sin contrato. Solo abre el enlace.",
     "finalBtnPrefix": "Probar",
     "footerPowered": "Powered by AWS Bedrock & Rekognition"
+  },
+  "circuit": {
+    "notFound": "Este enlace de verificación no es válido o no existe.",
+    "expired": "Esta verificación ya fue completada.",
+    "loading": "Cargando verificación...",
+    "error": "No se pudo cargar la verificación. Por favor verifica el enlace.",
+    "invalid": "Enlace de verificación no válido.",
+    "contactSupport": "Si crees que esto es un error, por favor contacta a soporte."
   }
 }

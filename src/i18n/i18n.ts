@@ -11,6 +11,13 @@ export function resolveLanguage(): Language {
   return lang === 'es' ? 'es' : 'en';
 }
 
+export function setLang(lang: Language): void {
+  const url = new URL(window.location.href);
+  url.searchParams.set('lang', lang);
+  window.history.replaceState({}, '', url.toString());
+  window.location.reload();
+}
+
 export function useTranslation() {
   const lang = resolveLanguage();
   const dict = dictionaries[lang];
@@ -22,15 +29,13 @@ export function useTranslation() {
       value = (value as Record<string, unknown>)?.[part];
     }
     let result = typeof value === 'string' ? value : key;
-
     if (vars) {
       for (const [varKey, varValue] of Object.entries(vars)) {
         result = result.replace(`{${varKey}}`, String(varValue));
       }
     }
-
     return result;
   }
 
-  return { t, lang };
+  return { t, lang, setLang };
 }

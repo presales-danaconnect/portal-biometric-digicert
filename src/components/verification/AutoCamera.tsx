@@ -15,6 +15,7 @@ import {
 import { useTranslation } from '../../i18n/i18n';
 
 interface AutoCameraProps {
+  primaryColor?: string;
   guideType?: 'rectangle' | 'circle';
   guideText?: string;
   maxSeconds?: number;
@@ -23,22 +24,23 @@ interface AutoCameraProps {
 
 export function AutoCamera({
   guideType = 'rectangle',
+  primaryColor = '#10b981',
   guideText = '',
   maxSeconds = 5,
   onCapture,
 }: AutoCameraProps) {
   const { t } = useTranslation();
   const webcamRef = useRef<Webcam>(null);
-  
+
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
-  
+
   const streamRef = useRef<MediaStream | null>(null);
-  
+
   const facingMode = guideType === 'rectangle' ? 'environment' : 'user';
-  
+
   const cleanup = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -46,13 +48,13 @@ export function AutoCamera({
     }
     setIsCameraActive(false);
   }, []);
-  
+
   const activate = useCallback(async () => {
     cleanup();
     setError(null);
     setErrorMessage(null);
     setSeconds(0);
-    
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -62,7 +64,7 @@ export function AutoCamera({
         },
         audio: false,
       });
-      
+
       streamRef.current = stream;
       setIsCameraActive(true);
     } catch (err) {
@@ -72,12 +74,12 @@ export function AutoCamera({
           video: { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
-        
+
         streamRef.current = stream;
         setIsCameraActive(true);
       } catch {
         const msg = err instanceof Error ? err.message : 'Camera error';
-        
+
         if (msg.includes('Permission') || msg.includes('NotAllowed')) {
           setError('permission_denied');
           setErrorMessage(t('camera.errors.permissionDenied'));
@@ -88,25 +90,25 @@ export function AutoCamera({
           setError('error');
           setErrorMessage(t('camera.errors.generic'));
         }
-        
+
         setIsCameraActive(false);
       }
     }
   }, [facingMode, cleanup, t]);
-  
+
   useEffect(() => {
     activate();
     return cleanup;
   }, [facingMode]);
-  
+
   // Timer for auto-capture
   useEffect(() => {
     if (!isCameraActive) return;
-    
+
     const interval = setInterval(() => {
       setSeconds(s => s + 1);
     }, 1000);
-    
+
     const timer = setTimeout(() => {
       if (webcamRef.current) {
         const photo = webcamRef.current.getScreenshot();
@@ -115,17 +117,17 @@ export function AutoCamera({
         }
       }
     }, maxSeconds * 1000);
-    
+
     return () => {
       clearInterval(interval);
       clearTimeout(timer);
     };
   }, [isCameraActive, maxSeconds, onCapture]);
-  
+
   const handleRetry = useCallback(() => {
     activate();
   }, [activate]);
-  
+
   if (error) {
     return (
       <Card variation="outlined" padding="l">
@@ -133,8 +135,8 @@ export function AutoCamera({
           <Alert variation="error">
             <Text>{errorMessage || t('camera.errors.generic')}</Text>
           </Alert>
-          <Button 
-            variation="primary" 
+          <Button
+            variation="primary"
             onClick={handleRetry}
             minHeight="44px"
             minWidth="44px"
@@ -146,7 +148,7 @@ export function AutoCamera({
       </Card>
     );
   }
-  
+
   if (!isCameraActive) {
     return (
       <Card variation="outlined" padding="l">
@@ -158,11 +160,11 @@ export function AutoCamera({
       </Card>
     );
   }
-  
+
   return (
     <Flex direction="column" gap="s" alignItems="center" width="100%">
-      <View 
-        width="100%" 
+      <View
+        width="100%"
         maxWidth="480px"
         position="relative"
         borderRadius="medium"
@@ -184,13 +186,13 @@ export function AutoCamera({
             objectFit: 'contain'
           }}
         />
-        
+
         {/* Live indicator */}
         <View
           position="absolute"
           top="12px"
           left="12px"
-          backgroundColor="#10b981"
+          backgroundColor={primaryColor}
           padding="xs"
           borderRadius="small"
           style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -199,7 +201,7 @@ export function AutoCamera({
             ● Live
           </Text>
         </View>
-        
+
         {/* Guide overlay */}
         <View
           position="absolute"
@@ -208,27 +210,28 @@ export function AutoCamera({
           transform="translate(-50%, -50%)"
           width={guideType === 'rectangle' ? '200px' : '150px'}
           height={guideType === 'rectangle' ? '125px' : '200px'}
-          border="3px solid #10b981"
+          border={`3px solid ${primaryColor}`}
           borderRadius={guideType === 'rectangle' ? 'small' : '50%'}
           opacity="0.7"
           style={{ pointerEvents: 'none' }}
         />
       </View>
-      
-      <Loader
-        variation="linear"
-        percentage={Math.min((seconds / maxSeconds) * 100, 100)}
-        isDeterminate
-        width="100%"
-        maxWidth="480px"
-      />
-      
+
+      <div style={{ width: '100%', maxWidth: '480px', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%',
+          width: `${Math.min((seconds / maxSeconds) * 100, 100)}%`,
+          backgroundColor: primaryColor,
+          borderRadius: '2px',
+          transition: 'width 0.3s ease',
+        }} />
+      </div>
       {guideText && (
         <Text fontWeight="bold" textAlign="center">
           {guideText}
         </Text>
       )}
-      
+
       <Text fontSize="small" color="font.tertiary">
         {t('camera.autoCaptureIn', { seconds: maxSeconds - seconds })}
       </Text>
