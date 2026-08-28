@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { FaceLivenessDetector } from '@aws-amplify/ui-react-liveness';
 import { useTranslation } from '../../i18n/i18n';
 import { useAttemptTracker } from '../../hooks/useAttemptTracker';
 import { getUploadUrl, uploadToS3, processCircuit } from '../../services/biometricApi';

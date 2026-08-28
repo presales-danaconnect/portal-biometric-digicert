@@ -177,8 +177,7 @@ function App() {
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
             geolocation={geolocation}
-            primaryColor={config.ui.colors.primary}
-          />
+                      />
         );
       case 'ocr':
         return (
@@ -187,8 +186,7 @@ function App() {
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
             geolocation={geolocation}
-            primaryColor={config.ui.colors.primary}
-          />
+                      />
         );
       case 'compare-faces':
         return (
@@ -227,8 +225,7 @@ function App() {
           backgroundColor={config.ui.colors.headerBackground}
           fontColor={config.ui.colors.headerFontColor}
           align={config.ui.layout.headerAlign as 'left' | 'right' | 'center'}
-          primaryColor={config.ui.colors.primary}
-        />
+                  />
 
         <main style={isLiveness ? { flex: 1, width: '100%' } : { flex: 1, ...containerStyle }}>
           {renderStep()}
