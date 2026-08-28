@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Flex,
-  View,
-  Loader,
-  Text,
-  ThemeProvider,
-} from '@aws-amplify/ui-react';
+import { ThemeProvider } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import { getConfig, CircuitConfig } from './services/biometricApi';
 import { useGeolocation } from './hooks/useGeolocation';
@@ -16,13 +10,20 @@ import { CompareFacesVerification } from './components/verification/CompareFaces
 import { DataVerification } from './components/verification/DataVerification';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
+import { createTenantTheme } from './theme';
+
+const containerStyle: React.CSSProperties = {
+  maxWidth: '640px',
+  margin: '0 auto',
+  width: '100%',
+  padding: '24px 16px',
+};
 
 function App() {
   const { t } = useTranslation();
   const geolocation = useGeolocation();
   const urlParams = new URLSearchParams(window.location.search);
   const circuitId = urlParams.get('circuit');
-
   const [config, setConfig] = useState<CircuitConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,6 @@ function App() {
       setLoading(false);
       return;
     }
-
     getConfig(circuitId)
       .then((data) => {
         setConfig(data);
@@ -63,18 +63,37 @@ function App() {
     }
   };
 
+  // Loading
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px" }}>
-        <Loader size="large" />
-        <Text variation="tertiary">{t('circuit.loading')}</Text>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        backgroundColor: '#f8fafc',
+      }}>
+        <div style={{
+          width: '52px',
+          height: '52px',
+          borderRadius: '50%',
+          border: '4px solid #e2e8f0',
+          borderTopColor: '#0a1a3c',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>
+          {t('circuit.loading')}
+        </p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
+  // Error
   if (error || !config || !circuitId) {
     const isCompleted = error?.includes('completed') || error?.includes('completada');
-
     return (
       <div style={{
         minHeight: '100vh',
@@ -83,7 +102,6 @@ function App() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '24px',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
       }}>
         <div style={{
           backgroundColor: '#ffffff',
@@ -92,7 +110,7 @@ function App() {
           maxWidth: '400px',
           width: '100%',
           textAlign: 'center',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)',
         }}>
           <div style={{
             width: '72px',
@@ -103,24 +121,14 @@ function App() {
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 28px',
-            fontSize: '32px'
+            fontSize: '32px',
           }}>
             {isCompleted ? '✅' : !circuitId ? '🔗' : '⚠️'}
           </div>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: 600,
-            color: '#0f172a',
-            marginBottom: '10px',
-          }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0f172a', marginBottom: '10px' }}>
             {isCompleted ? t('circuit.expired') : !circuitId ? t('circuit.invalid') : t('circuit.error')}
           </h2>
-          <p style={{
-            fontSize: '13px',
-            color: '#94a3b8',
-            lineHeight: '1.6',
-            marginBottom: '0'
-          }}>
+          <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.6 }}>
             {t('circuit.contactSupport')}
           </p>
         </div>
@@ -128,50 +136,36 @@ function App() {
     );
   }
 
-  const theme = {
-    name: 'tenant-theme',
-    tokens: {
-      colors: {
-        brand: {
-          primary: {
-            10: { value: config.ui.colors.primary },
-            20: { value: config.ui.colors.primary },
-            40: { value: config.ui.colors.primary },
-            60: { value: config.ui.colors.primary },
-            80: { value: config.ui.colors.primary },
-            90: { value: config.ui.colors.primary },
-            100: { value: config.ui.colors.primary },
-          },
-        },
-        components: {
-          button: {
-            primary: {
-              backgroundColor: { value: config.ui.colors.primary },
-              _hover: { backgroundColor: { value: config.ui.colors.primary } },
-              _focus: { backgroundColor: { value: config.ui.colors.primary } },
-              _active: { backgroundColor: { value: config.ui.colors.primary } },
-            },
-          },
-          loader: {
-            strokeFilled: { value: config.ui.colors.primary },
-            linear: {
-              strokeFilled: { value: config.ui.colors.primary },
-            },
-          },
-        },
-      },
-    },
-  };
+  const theme = createTenantTheme({
+    primary: config.ui.colors.primary,
+    background: config.ui.colors.background,
+  });
 
   const currentStep = config.steps[currentStepIndex];
+  const isLiveness = currentStep === 'liveness' && !completed;
 
   const renderStep = () => {
     if (completed) {
       return (
-        <View textAlign="center" padding="xl">
-          <h2>✅ Verificación completada</h2>
-          <p>Tu identidad ha sido verificada exitosamente.</p>
-        </View>
+        <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '50%',
+            backgroundColor: '#f0fdf4',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 24px',
+            fontSize: '32px',
+          }}>✅</div>
+          <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>
+            {t('circuit.completed') || 'Verification Complete'}
+          </h2>
+          <p style={{ fontSize: '14px', color: '#64748b' }}>
+            {t('circuit.completedMessage') || 'Your identity has been verified successfully.'}
+          </p>
+        </div>
       );
     }
 
@@ -183,6 +177,7 @@ function App() {
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
             geolocation={geolocation}
+            primaryColor={config.ui.colors.primary}
           />
         );
       case 'ocr':
@@ -201,6 +196,7 @@ function App() {
             circuitId={circuitId}
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
+            geolocation={geolocation}
           />
         );
       case 'data-verification':
@@ -209,43 +205,43 @@ function App() {
             circuitId={circuitId}
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
+            geolocation={geolocation}
           />
         );
       default:
-        return <p>Step no reconocido: {currentStep}</p>;
+        return <p>Unknown step: {currentStep}</p>;
     }
   };
 
   return (
     <ThemeProvider theme={theme}>
-      <View backgroundColor={config.ui.colors.background} minHeight="100vh">
-        <Flex direction="column" minHeight="100vh">
-          <Header
-            title={config.ui.headerTitle}
-            logoUrl={config.ui.headerLogoUrl}
-            backgroundColor={config.ui.colors.headerBackground}
-            fontColor={config.ui.colors.headerFontColor}
-            align={config.ui.layout.headerAlign as 'left' | 'right' | 'center'}
-            primaryColor={config.ui.colors.primary}
-          />
-          <Flex
-            maxWidth="800px"
-            margin="0 auto"
-            width="100%"
-            padding={{ base: 'm', large: 'xl' }}
-            flex="1"
-          >
-            {renderStep()}
-          </Flex>
-          <Footer
-            privacyPolicyUrl={config.ui.footerPrivacyPolicyUrl}
-            websiteUrl={config.ui.footerWebsiteUrl}
-            backgroundColor={config.ui.colors.footerBackground}
-            fontColor={config.ui.colors.footerFontColor}
-            align={config.ui.layout.footerAlign as 'left' | 'right' | 'center'}
-          />
-        </Flex>
-      </View>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: config.ui.colors.background,
+      }}>
+        <Header
+          title={config.ui.headerTitle}
+          logoUrl={config.ui.headerLogoUrl}
+          backgroundColor={config.ui.colors.headerBackground}
+          fontColor={config.ui.colors.headerFontColor}
+          align={config.ui.layout.headerAlign as 'left' | 'right' | 'center'}
+          primaryColor={config.ui.colors.primary}
+        />
+
+        <main style={isLiveness ? { flex: 1, width: '100%' } : { flex: 1, ...containerStyle }}>
+          {renderStep()}
+        </main>
+
+        <Footer
+          privacyPolicyUrl={config.ui.footerPrivacyPolicyUrl}
+          websiteUrl={config.ui.footerWebsiteUrl}
+          backgroundColor={config.ui.colors.footerBackground}
+          fontColor={config.ui.colors.footerFontColor}
+          align={config.ui.layout.footerAlign as 'left' | 'right' | 'center'}
+        />
+      </div>
     </ThemeProvider>
   );
 }

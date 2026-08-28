@@ -202,6 +202,8 @@
     "loading": "Loading verification...",
     "error": "Unable to load verification. Please check your link.",
     "invalid": "Invalid verification link.",
-    "contactSupport": "If you believe this is an error, please contact support."
+    "contactSupport": "If you believe this is an error, please contact support.",
+    "completed": "Verification Complete",
+    "completedMessage": "Your identity has been verified successfully."
   }
 }

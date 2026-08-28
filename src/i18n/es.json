@@ -202,6 +202,8 @@
     "loading": "Cargando verificación...",
     "error": "No se pudo cargar la verificación. Por favor verifica el enlace.",
     "invalid": "Enlace de verificación no válido.",
-    "contactSupport": "Si crees que esto es un error, por favor contacta a soporte."
+    "contactSupport": "Si crees que esto es un error, por favor contacta a soporte.",
+    "completed": "Verificación Completada",
+    "completedMessage": "Tu identidad ha sido verificada exitosamente."
   }
 }
