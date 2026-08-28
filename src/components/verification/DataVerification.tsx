@@ -1,282 +1,136 @@
-import { useState, useCallback } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Flex,
-  Heading,
-  Text,
-  Badge,
-  Divider,
-  Loader,
-  Image,
-} from '@aws-amplify/ui-react';
-import { AutoCamera } from './AutoCamera';
-import { verifyData, DataVerificationResultData } from '../../services/dataVerification';
+import { useState } from 'react';
 import { useTranslation } from '../../i18n/i18n';
 import { useAttemptTracker } from '../../hooks/useAttemptTracker';
+import { processCircuit } from '../../services/biometricApi';
 
 interface DataVerificationProps {
-  tenant: string;
-  webhookUrl?: string;
+  circuitId: string;
+  thresholds: {
+    maxAttempts: number;
+  };
+  onComplete: () => void;
   geolocation?: string | null;
-  dataVerificationApiUrl?: string;
-  docRef?: string | null;
-  requiresBack?: boolean;
-  reference?: string | null;
-  maxAttempts?: number;
 }
 
-type Step = 'front' | 'frontPreview' | 'back' | 'backPreview' | 'querying' | 'done';
-
 export function DataVerification({
-  tenant,
-  webhookUrl,
+  circuitId,
+  thresholds,
+  onComplete,
   geolocation,
-  dataVerificationApiUrl,
-  docRef,
-  requiresBack = false,
-  reference,
-  maxAttempts = 3,
 }: DataVerificationProps) {
   const { t } = useTranslation();
-  const { hasReachedLimit, recordAttempt } = useAttemptTracker(tenant, 'data-verification', maxAttempts);
-
-  const [step, setStep] = useState<Step>('front');
-  const [frontImage, setFrontImage] = useState<string | null>(null);
-  const [backImage, setBackImage] = useState<string | null>(null);
-  const [result, setResult] = useState<DataVerificationResultData | null>(null);
+  const { recordAttempt, hasReachedLimit } = useAttemptTracker(circuitId, 'data-verification', thresholds.maxAttempts);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ matches: Record<string, boolean> } | null>(null);
 
-  const handleFrontCapture = useCallback((photo: string) => {
-    setFrontImage(photo);
-    setStep('frontPreview');
-  }, []);
-
-  const handleBackCapture = useCallback((photo: string) => {
-    setBackImage(photo);
-    setStep('backPreview');
-  }, []);
-
-  const handleRetakeFront = () => {
-    setFrontImage(null);
-    setStep('front');
-  };
-
-  const handleRetakeBack = () => {
-    setBackImage(null);
-    setStep('back');
-  };
-
-  const handleSubmit = async () => {
-    if (!frontImage || !dataVerificationApiUrl || !docRef) return;
-    if (requiresBack && !backImage) return;
-
-    setStep('querying');
+  const handleVerify = async () => {
+    setIsProcessing(true);
     setError(null);
-
     try {
-      const response = await verifyData(
-        frontImage,
-        backImage || undefined,
-        docRef,
-        tenant,
-        webhookUrl,
-        geolocation,
-        dataVerificationApiUrl,
-        reference
-      );
-
-      if (response.success && response.data) {
-        setResult(response.data);
+      const response = await processCircuit(circuitId, 'data-verification', {}, geolocation || undefined);
+      recordAttempt();
+      if (response.status !== 'failed') {
+        setResult((response.stepResult as any)?.matches || {});
+        onComplete();
       } else {
-        const errorKey = response.errorCode ? `dataVerification.errors.${response.errorCode}` : null;
-        setError(errorKey ? t(errorKey) : (response.error || t('common.unknownError')));
+        setError(t('dataVerification.failed') || 'Data verification failed. Please try again.');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
-      setStep('done');
-      recordAttempt();
+      setIsProcessing(false);
     }
   };
 
-  const handleRetry = () => {
-    setStep('front');
-    setFrontImage(null);
-    setBackImage(null);
-    setResult(null);
-    setError(null);
-  };
-
-  if (!dataVerificationApiUrl || !docRef) {
+  if (hasReachedLimit) {
     return (
-      <Card variation="elevated" padding="xl" width="100%">
-        <Flex direction="column" gap="xl">
-          <Heading level={2}>🔎 {t('dataVerification.title')}</Heading>
-          <Divider />
-          <Alert variation="error">
-            {t('dataVerification.errors.MISSING_PARAMS')}
-          </Alert>
-        </Flex>
-      </Card>
+      <div style={{ textAlign: 'center', padding: '48px 24px', fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚫</div>
+        <h3 style={{ color: '#0f172a', marginBottom: '8px' }}>{t('common.maxAttemptsReached')}</h3>
+      </div>
     );
   }
 
-  const isMatch = !!(result?.found && result?.analysis?.overallMatch);
-
   return (
-    <Card padding="xl" width="100%" borderRadius="xl">
-      <Flex direction="column" gap="xl">
-        <Flex direction="column" gap="xs">
-          <Heading level={2}>🔎 {t('dataVerification.title')}</Heading>
-          <Badge size="small" variation="info">
-            Tenant: {tenant}
-          </Badge>
-        </Flex>
+    <div style={{ fontFamily: 'system-ui, sans-serif', width: '100%' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#0f172a', margin: '0 0 6px' }}>
+          ✅ {t('dataVerification.title') || 'Data Verification'}
+        </h2>
+        <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+          {t('dataVerification.instructions') || 'Verifying your document data matches your information.'}
+        </p>
+      </div>
 
-        <Divider />
+      {error && (
+        <div style={{
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          color: '#dc2626',
+          fontSize: '13px',
+        }}>
+          {error}
+        </div>
+      )}
 
-        {step === 'done' && result && result.found && (
-          <Alert variation={isMatch ? 'success' : 'error'}>
-            {isMatch ? t('dataVerification.match') : t('dataVerification.noMatch')}
-          </Alert>
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        padding: '32px 24px',
+        textAlign: 'center',
+      }}>
+        {isProcessing ? (
+          <>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              border: '3px solid #f1f5f9',
+              borderTop: '3px solid #0a1a3c',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+              margin: '0 auto 16px',
+            }} />
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
+              {t('dataVerification.processing') || 'Verifying data...'}
+            </p>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </>
+        ) : result ? (
+          <div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+            <p style={{ color: '#16a34a', fontSize: '14px' }}>
+              {t('dataVerification.success') || 'Data verified successfully.'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>
+              {t('dataVerification.ready') || 'Ready to verify your document data.'}
+            </p>
+            <button
+              onClick={handleVerify}
+              style={{
+                padding: '12px 32px',
+                border: 'none',
+                borderRadius: '10px',
+                background: '#0a1a3c',
+                color: '#fff',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              {t('dataVerification.start') || 'Verify Data'}
+            </button>
+          </>
         )}
-
-        {step === 'done' && result && !result.found && (
-          <Alert variation="error">
-            {t('dataVerification.notFound')}
-          </Alert>
-        )}
-
-        {error && (
-          <Alert variation="error" isDismissible onDismiss={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
-        {step === 'done' && hasReachedLimit && !isMatch && (
-          <Alert variation="error">
-            {t('common.maxAttemptsReached')}
-          </Alert>
-        )}
-
-        <Card variation="outlined">
-          <Flex direction="column" gap="l" alignItems="center" padding="l">
-            {step === 'front' && (
-              <AutoCamera
-                guideType="rectangle"
-                guideText={t('dataVerification.documentGuideText')}
-                maxSeconds={5}
-                onCapture={handleFrontCapture}
-              />
-            )}
-
-            {step === 'frontPreview' && frontImage && (
-              <Flex direction="column" gap="l" width="100%" alignItems="center">
-                <Badge>{t('ocr.frontSide')}</Badge>
-                <Image
-                  src={frontImage}
-                  alt="Front"
-                  width="200px"
-                  height="130px"
-                  borderRadius="small"
-                  objectFit="cover"
-                />
-                <Flex gap="m" wrap="wrap" justifyContent="center">
-                  {requiresBack ? (
-                    <Button variation="primary" onClick={() => setStep('back')}>
-                      {t('ocr.continue')}
-                    </Button>
-                  ) : (
-                    <Button variation="primary" onClick={handleSubmit}>
-                      {t('ocr.submit')}
-                    </Button>
-                  )}
-                  <Button onClick={handleRetakeFront}>
-                    {t('ocr.retake')}
-                  </Button>
-                </Flex>
-              </Flex>
-            )}
-
-            {step === 'back' && (
-              <AutoCamera
-                guideType="rectangle"
-                guideText={t('dataVerification.documentGuideTextBack')}
-                maxSeconds={5}
-                onCapture={handleBackCapture}
-              />
-            )}
-
-            {step === 'backPreview' && backImage && (
-              <Flex direction="column" gap="l" width="100%" alignItems="center">
-                <Badge>{t('ocr.backSide')}</Badge>
-                <Image
-                  src={backImage}
-                  alt="Back"
-                  width="200px"
-                  height="130px"
-                  borderRadius="small"
-                  objectFit="cover"
-                />
-                <Flex gap="m" wrap="wrap" justifyContent="center">
-                  <Button variation="primary" onClick={handleSubmit}>
-                    {t('ocr.submit')}
-                  </Button>
-                  <Button onClick={handleRetakeBack}>
-                    {t('ocr.retake')}
-                  </Button>
-                </Flex>
-              </Flex>
-            )}
-
-            {step === 'querying' && (
-              <Flex direction="column" gap="m" alignItems="center">
-                <Loader size="large" />
-                <Text>{t('dataVerification.querying')}</Text>
-              </Flex>
-            )}
-
-            {step === 'done' && result && result.found && (
-              <Flex direction="column" gap="l" width="100%" alignItems="center">
-                <Flex direction="column" gap="xs">
-                  <Text><strong>{t('dataVerification.documentNumber')}:</strong> {result.ocrData.documentNumber}</Text>
-                  <Text><strong>{t('dataVerification.names')}:</strong> {result.ocrData.firstName}</Text>
-                  <Text><strong>{t('dataVerification.lastNames')}:</strong> {result.ocrData.lastName}</Text>
-                  <Text><strong>{t('dataVerification.birthDate')}:</strong> {result.ocrData.birthDate}</Text>
-                  {result.analysis && (
-                    <Text fontSize="small" color="font.secondary">{result.analysis.summary}</Text>
-                  )}
-                </Flex>
-                {/* Success ends the flow — no retry button shown at all.
-                    Failure only offers retry if attempts remain. */}
-                {!isMatch && !hasReachedLimit && (
-                  <Button variation="primary" onClick={handleRetry}>
-                    {t('dataVerification.tryAgain')}
-                  </Button>
-                )}
-              </Flex>
-            )}
-
-            {step === 'done' && result && !result.found && !hasReachedLimit && (
-              <Flex direction="column" gap="m" alignItems="center">
-                <Button variation="primary" onClick={handleRetry}>
-                  {t('dataVerification.tryAgain')}
-                </Button>
-              </Flex>
-            )}
-
-            {step === 'done' && error && !hasReachedLimit && (
-              <Flex direction="column" gap="m" alignItems="center">
-                <Button variation="primary" onClick={handleRetry}>
-                  {t('dataVerification.tryAgain')}
-                </Button>
-              </Flex>
-            )}
-          </Flex>
-        </Card>
-      </Flex>
-    </Card>
+      </div>
+    </div>
   );
 }
