@@ -1,18 +1,12 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { livenessHandler } from './functions/liveness-handler/resource';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 const backend = defineBackend({
   auth,
   livenessHandler,
 });
-
-// Grant unauthenticated role permissions for Rekognition Liveness
-backend.auth.resources.unauthenticatedUserIamRole.addManagedPolicy({
-  managedPolicyArn: 'arn:aws:iam::aws:policy/AmazonRekognitionReadOnlyAccess',
-});
-
-import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 backend.auth.resources.unauthenticatedUserIamRole.addToPrincipalPolicy(
   new PolicyStatement({
