@@ -9,6 +9,17 @@ const backend = defineBackend({
   livenessHandler,
 });
 
+// Permisos Rekognition para la Lambda
+backend.livenessHandler.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: [
+      'rekognition:CreateFaceLivenessSession',
+      'rekognition:GetFaceLivenessSessionResults',
+    ],
+    resources: ['*'],
+  })
+);
+
 // Lambda Function URL con CORS
 const livenessFunction = backend.livenessHandler.resources.lambda;
 const functionUrl = livenessFunction.addFunctionUrl({
@@ -30,12 +41,10 @@ backend.addOutput({
   },
 });
 
-// Permisos Rekognition para rol unauthenticated
+// Permisos Rekognition para rol unauthenticated (frontend)
 backend.auth.resources.unauthenticatedUserIamRole.addToPrincipalPolicy(
   new PolicyStatement({
     actions: [
-      'rekognition:CreateFaceLivenessSession',
-      'rekognition:GetFaceLivenessSessionResults',
       'rekognition:StartFaceLivenessSession',
     ],
     resources: ['*'],
