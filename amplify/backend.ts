@@ -9,9 +9,9 @@ const backend = defineBackend({
   livenessHandler,
 });
 
-// CORS para Lambda Function URL
+// Lambda Function URL con CORS
 const livenessFunction = backend.livenessHandler.resources.lambda;
-livenessFunction.addFunctionUrl({
+const functionUrl = livenessFunction.addFunctionUrl({
   authType: FunctionUrlAuthType.NONE,
   cors: {
     allowedOrigins: [
@@ -23,7 +23,14 @@ livenessFunction.addFunctionUrl({
   },
 });
 
-// Rekognition permissions
+// Exponer URL en amplify_outputs.json
+backend.addOutput({
+  custom: {
+    livenessApiUrl: functionUrl.url,
+  },
+});
+
+// Permisos Rekognition para rol unauthenticated
 backend.auth.resources.unauthenticatedUserIamRole.addToPrincipalPolicy(
   new PolicyStatement({
     actions: [

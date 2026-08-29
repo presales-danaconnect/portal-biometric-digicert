@@ -4,10 +4,9 @@ import {
   CreateFaceLivenessSessionCommand,
   GetFaceLivenessSessionResultsCommand,
 } from '@aws-sdk/client-rekognition';
-import { notifyWebhook } from '../shared/webhookNotifier';
-import { getCorsHeaders } from '../shared/cors';
 
 const client = new RekognitionClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 interface CreateSessionRequestBody {
   action: 'create';
@@ -27,8 +26,6 @@ type RequestBody = CreateSessionRequestBody | GetResultsRequestBody;
 export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
-  const origin = event.headers.origin || event.headers.Origin || '';
-  const corsHeaders = getCorsHeaders(origin);
   const sourceIp = event.requestContext?.http?.sourceIp || 'unknown';
 
   console.log(JSON.stringify({
@@ -39,30 +36,30 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
   }));
 
   if (event.requestContext?.http?.method === 'OPTIONS') {
-    return { statusCode: 200, headers: corsHeaders, body: '' };
+    return { statusCode: 200, headers: JSON_HEADERS, body: '' };
   }
 
   try {
     const body = JSON.parse(event.body || '{}') as RequestBody;
 
     if (body.action === 'create') {
-      return await handleCreateSession(corsHeaders);
+      return await handleCreateSession();
     }
 
     if (body.action === 'results') {
-      return await handleGetResults(body, corsHeaders);
+      return await handleGetResults(body);
     }
 
     return {
       statusCode: 400,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
       body: JSON.stringify({ error: 'Invalid or missing action. Expected "create" or "results".' }),
     };
   } catch (error) {
     console.error('[Liveness] Error:', error);
     return {
       statusCode: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
       body: JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -71,7 +68,7 @@ export const handler: Handler<APIGatewayProxyEventV2, APIGatewayProxyResultV2> =
   }
 };
 
-async function handleCreateSession(corsHeaders: Record<string, string>): Promise<APIGatewayProxyResultV2> {
+async function handleCreateSession(): Promise<APIGatewayProxyResultV2> {
   console.log('[Liveness] Creating session...');
 
   const command = new CreateFaceLivenessSessionCommand({
@@ -81,12 +78,11 @@ async function handleCreateSession(corsHeaders: Record<string, string>): Promise
   });
 
   const response = await client.send(command);
-
   console.log('[Liveness] Session created:', response.SessionId);
 
   return {
     statusCode: 200,
-    headers: corsHeaders,
+    headers: JSON_HEADERS,
     body: JSON.stringify({
       success: true,
       sessionId: response.SessionId,
@@ -95,15 +91,14 @@ async function handleCreateSession(corsHeaders: Record<string, string>): Promise
 }
 
 async function handleGetResults(
-  body: GetResultsRequestBody,
-  corsHeaders: Record<string, string>
+  body: GetResultsRequestBody
 ): Promise<APIGatewayProxyResultV2> {
-  const { sessionId, tenant, webhookUrl, geolocation, reference } = body;
+  const { sessionId } = body;
 
   if (!sessionId) {
     return {
       statusCode: 400,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
       body: JSON.stringify({ error: 'Missing sessionId' }),
     };
   }
@@ -125,18 +120,9 @@ async function handleGetResults(
     referenceImage: referenceImageBase64,
   };
 
-  await notifyWebhook(webhookUrl, {
-    tenant: tenant || 'unknown',
-    service: 'liveness',
-    timestamp: new Date().toISOString(),
-    geolocation: geolocation || null,
-    reference: reference || null,
-    data: resultData,
-  });
-
   return {
     statusCode: 200,
-    headers: corsHeaders,
+    headers: JSON_HEADERS,
     body: JSON.stringify({
       success: true,
       data: resultData,

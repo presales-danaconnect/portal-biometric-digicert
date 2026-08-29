@@ -1,6 +1,9 @@
+import outputs from '../../amplify_outputs.json';
 import { processCircuit } from './biometricApi';
 
-const LIVENESS_API_URL = import.meta.env.VITE_LIVENESS_API_URL || '';
+const LIVENESS_API_URL = (outputs as any).custom?.livenessApiUrl 
+  || import.meta.env.VITE_LIVENESS_API_URL 
+  || '';
 
 export interface LivenessResultData {
   status: string;
