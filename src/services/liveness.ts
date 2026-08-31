@@ -37,11 +37,13 @@ export async function submitLivenessResult(
       { sessionId },
       geolocation || undefined
     );
+    const stepSuccess = (result.stepResult as any)?.success === true;
+    const confidence = (result.stepResult as any)?.confidence || 0;
     return {
-      success: true,
+      success: stepSuccess,
       data: {
-        status: (result.stepResult as any)?.success ? 'SUCCEEDED' : 'FAILED',
-        confidence: (result.stepResult as any)?.confidence || 0,
+        status: stepSuccess ? 'SUCCEEDED' : 'FAILED',
+        confidence,
         referenceImage: null,
       },
     };

@@ -39,10 +39,18 @@
     "guideText": "Position your face in the oval",
     "creatingSession": "Preparing liveness check...",
     "success": "Verification successful",
-    "failed": "Verification failed",
+    "failed": "Liveness check did not pass. Please ensure good lighting, face the camera directly, and try again.",
     "confidence": "Confidence",
     "tryAgain": "Try Again",
-    "instructions": "Look directly at the camera and follow the on-screen prompts."
+    "instructions": "Look directly at the camera and follow the on-screen prompts.",
+    "cancelled": "Verification cancelled. Please try again.",
+    "faceTooFar": "Face too far from camera. Please move closer.",
+    "timeout": "Verification timed out. Please try again.",
+    "faceDistanceError": "Face too close to the camera. Please move back and try again.",
+    "multipleFacesError": "Multiple faces detected. Please ensure only one face is visible.",
+    "landscapeError": "Landscape mode is not supported. Please rotate your device.",
+    "cameraError": "Camera access denied. Please allow camera access and try again.",
+    "cameraFramerateError": "Your camera does not meet the minimum requirements. Please try a different device."
   },
   "compareFaces": {
     "title": "Face Comparison",

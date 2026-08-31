@@ -39,10 +39,18 @@
     "guideText": "Posiciona tu rostro en el óvalo",
     "creatingSession": "Preparando verificación...",
     "success": "Verificación exitosa",
-    "failed": "Verificación fallida",
+    "failed": "La verificación no fue exitosa. Asegúrate de tener buena iluminación, mira directamente a la cámara e intenta de nuevo.",
     "confidence": "Confianza",
     "tryAgain": "Intentar de Nuevo",
-    "instructions": "Mira directamente a la cámara y sigue las instrucciones en pantalla."
+    "instructions": "Mira directamente a la cámara y sigue las instrucciones en pantalla.",
+    "cancelled": "Verificación cancelada. Por favor intenta de nuevo.",
+    "faceTooFar": "Rostro muy lejos de la cámara. Por favor acércate.",
+    "timeout": "Tiempo de verificación agotado. Por favor intenta de nuevo.",
+    "faceDistanceError": "Rostro muy cerca de la cámara. Por favor aléjate e intenta de nuevo.",
+    "multipleFacesError": "Se detectaron múltiples rostros. Asegúrate que solo haya un rostro visible.",
+    "landscapeError": "El modo horizontal no es compatible. Por favor gira tu dispositivo.",
+    "cameraError": "Acceso a la cámara denegado. Por favor permite el acceso a la cámara.",
+    "cameraFramerateError": "Tu cámara no cumple los requisitos mínimos. Por favor intenta con otro dispositivo."
   },
   "compareFaces": {
     "title": "Comparación de Rostros",

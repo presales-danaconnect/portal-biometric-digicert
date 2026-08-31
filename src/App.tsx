@@ -19,6 +19,13 @@ const containerStyle: React.CSSProperties = {
   padding: '24px 16px',
 };
 
+const livenessContainerStyle: React.CSSProperties = {
+  maxWidth: '560px',
+  margin: '0 auto',
+  width: '100%',
+  padding: '24px 16px',
+};
+
 function App() {
   const { t } = useTranslation();
   const geolocation = useGeolocation();
@@ -63,7 +70,6 @@ function App() {
     }
   };
 
-  // Loading
   if (loading) {
     return (
       <div style={{
@@ -91,7 +97,6 @@ function App() {
     );
   }
 
-  // Error
   if (error || !config || !circuitId) {
     const isCompleted = error?.includes('completed') || error?.includes('completada');
     return (
@@ -177,7 +182,8 @@ function App() {
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
             geolocation={geolocation}
-                      />
+            primaryColor={config.ui.colors.primary}
+          />
         );
       case 'ocr':
         return (
@@ -186,7 +192,8 @@ function App() {
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
             geolocation={geolocation}
-                      />
+            primaryColor={config.ui.colors.primary}
+          />
         );
       case 'compare-faces':
         return (
@@ -225,12 +232,12 @@ function App() {
           backgroundColor={config.ui.colors.headerBackground}
           fontColor={config.ui.colors.headerFontColor}
           align={config.ui.layout.headerAlign as 'left' | 'right' | 'center'}
-                  />
+          primaryColor={config.ui.colors.primary}
+        />
 
-        <main style={isLiveness ? { flex: 1, width: '100%' } : { flex: 1, ...containerStyle }}>
+        <main style={isLiveness ? { ...livenessContainerStyle, flex: 1 } : { flex: 1, ...containerStyle }}>
           {renderStep()}
         </main>
-
         <Footer
           privacyPolicyUrl={config.ui.footerPrivacyPolicyUrl}
           websiteUrl={config.ui.footerWebsiteUrl}
