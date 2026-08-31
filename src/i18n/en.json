@@ -54,30 +54,13 @@
   },
   "compareFaces": {
     "title": "Face Comparison",
-    "documentStep": "Document Photo",
-    "documentGuideText": "Position your ID document in the rectangle",
-    "livenessStep": "Face Verification",
-    "creatingSession": "Preparing verification...",
-    "comparing": "Comparing faces...",
-    "match": "Faces match",
-    "noMatch": "Faces do not match",
-    "similarity": "Similarity",
-    "tryAgain": "Try Again",
-    "validatingDocument": "Validating document...",
-    "instructions": "First capture your ID, then complete the face verification.",
-    "errors": {
-      "NO_FACE_DETECTED": "No face detected in one of the images. Please try again.",
-      "NOT_A_DOCUMENT": "The provided image does not show a valid identity document.",
-      "IMAGE_TOO_LARGE": "Image is too large. Please try again.",
-      "INVALID_IMAGE_FORMAT": "Invalid image format. Please try again.",
-      "NO_LIVENESS_IMAGE": "Liveness verification did not produce a usable image.",
-      "ACCESS_DENIED": "Not authorized to perform this verification.",
-      "INVALID_S3_OBJECT": "Unable to access the reference image.",
-      "THROUGHPUT_EXCEEDED": "Too many requests. Please wait a moment and try again.",
-      "THROTTLING": "Service temporarily unavailable. Please try again.",
-      "INTERNAL_SERVER_ERROR": "A service issue occurred. Please try again.",
-      "GENERIC_ERROR": "Something went wrong. Please try again."
-    }
+    "instructions": "Comparing your face with the document photo.",
+    "processing": "Comparing faces...",
+    "ready": "Ready to compare your face with the document.",
+    "retry": "Try Again",
+    "failed": "Face comparison failed. Please try again.",
+    "lowSimilarity": "Face does not match the document photo.",
+    "noFaceDetected": "No face detected in the document. Please ensure the document photo is clear and well-lit."
   },
   "dataVerification": {
     "title": "Data Verification",

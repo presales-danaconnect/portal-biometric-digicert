@@ -53,31 +53,14 @@
     "cameraFramerateError": "Tu cámara no cumple los requisitos mínimos. Por favor intenta con otro dispositivo."
   },
   "compareFaces": {
-    "title": "Comparación de Rostros",
-    "documentStep": "Foto del Documento",
-    "documentGuideText": "Posiciona tu documento de identidad en el rectángulo",
-    "livenessStep": "Verificación Facial",
-    "creatingSession": "Preparando verificación...",
-    "comparing": "Comparando rostros...",
-    "match": "Los rostros coinciden",
-    "noMatch": "Los rostros no coinciden",
-    "similarity": "Similitud",
-    "tryAgain": "Intentar de Nuevo",
-    "validatingDocument": "Validando documento...",
-    "instructions": "Primero captura tu documento, luego completa la verificación facial.",
-    "errors": {
-      "NO_FACE_DETECTED": "No se detectó ningún rostro en una de las imágenes. Intenta de nuevo.",
-      "NOT_A_DOCUMENT": "La imagen proporcionada no muestra un documento de identidad válido.",
-      "IMAGE_TOO_LARGE": "La imagen es demasiado grande. Intenta de nuevo.",
-      "INVALID_IMAGE_FORMAT": "Formato de imagen inválido. Intenta de nuevo.",
-      "NO_LIVENESS_IMAGE": "La verificación de vida no generó una imagen utilizable.",
-      "ACCESS_DENIED": "No autorizado para realizar esta verificación.",
-      "INVALID_S3_OBJECT": "No se pudo acceder a la imagen de referencia.",
-      "THROUGHPUT_EXCEEDED": "Demasiadas solicitudes. Espera un momento e intenta de nuevo.",
-      "THROTTLING": "Servicio temporalmente no disponible. Intenta de nuevo.",
-      "INTERNAL_SERVER_ERROR": "Ocurrió un problema en el servicio. Intenta de nuevo.",
-      "GENERIC_ERROR": "Algo salió mal. Intenta de nuevo."
-    }
+    "title": "Comparación Facial",
+    "instructions": "Comparando tu rostro con la foto del documento.",
+    "processing": "Comparando rostros...",
+    "ready": "Listo para comparar tu rostro con el documento.",
+    "retry": "Intentar de nuevo",
+    "failed": "La comparación facial falló. Por favor intenta de nuevo.",
+    "lowSimilarity": "El rostro no coincide con la foto del documento.",
+    "noFaceDetected": "No se detectó rostro en el documento. Asegúrate que la foto del documento esté clara y bien iluminada."
   },
   "dataVerification": {
     "title": "Verificación de Datos",

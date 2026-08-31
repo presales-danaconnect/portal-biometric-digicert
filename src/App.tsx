@@ -69,6 +69,12 @@ function App() {
       setCurrentStepIndex(nextIndex);
     }
   };
+  const handleStepRetry = (retryStep: string) => {
+    const retryIndex = config?.steps.indexOf(retryStep) ?? -1;
+    if (retryIndex >= 0) {
+      setCurrentStepIndex(retryIndex);
+    }
+  };
 
   if (loading) {
     return (
@@ -201,7 +207,9 @@ function App() {
             circuitId={circuitId}
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
+            onRetry={handleStepRetry}
             geolocation={geolocation}
+            primaryColor={config.ui.colors.primary}
           />
         );
       case 'data-verification':
