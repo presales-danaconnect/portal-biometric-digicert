@@ -60,7 +60,9 @@
     "retry": "Intentar de nuevo",
     "failed": "La comparación facial falló. Por favor intenta de nuevo.",
     "lowSimilarity": "El rostro no coincide con la foto del documento.",
-    "noFaceDetected": "No se detectó rostro en el documento. Asegúrate que la foto del documento esté clara y bien iluminada."
+    "noFaceDetected": "No se detectó rostro en el documento. Asegúrate que la foto del documento esté clara y bien iluminada.",
+    "retakeDocumentHint": "Por favor retoma la foto del documento asegurándote que tu cara sea visible.",
+    "retakeDocument": "Retomar foto del documento"
   },
   "dataVerification": {
     "title": "Verificación de Datos",

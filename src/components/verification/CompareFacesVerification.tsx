@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../i18n/i18n';
-import { useAttemptTracker } from '../../hooks/useAttemptTracker';
 import { processCircuit } from '../../services/biometricApi';
 
 interface CompareFacesVerificationProps {
@@ -17,19 +16,13 @@ interface CompareFacesVerificationProps {
 
 export function CompareFacesVerification({
   circuitId,
-  thresholds,
   onComplete,
   onRetry,
   geolocation,
   primaryColor = '#0f172a',
 }: CompareFacesVerificationProps) {
   const { t } = useTranslation();
-  const { recordAttempt, hasReachedLimit } = useAttemptTracker(
-    circuitId,
-    'compare-faces',
-    thresholds.maxAttempts
-  );
-  const [status, setStatus] = useState<'idle' | 'processing' | 'error' | 'retry_ocr'>('idle');
+  const [status, setStatus] = useState<'idle' | 'processing' | 'error' | 'retry_ocr' | 'max_attempts'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   const handleCompare = async () => {
@@ -42,21 +35,18 @@ export function CompareFacesVerification({
 
       if (result.status !== 'failed' && (result.stepResult as any)?.success) {
         onComplete();
+      } else if (errorCode === 'MAX_ATTEMPTS_REACHED') {
+        setError(t('common.maxAttemptsReached'));
+        setStatus('max_attempts');
       } else if (errorCode === 'NO_FACE_IN_IMAGE') {
         setError(t('compareFaces.noFaceDetected'));
         setStatus('retry_ocr');
-      } else if (errorCode === 'MAX_ATTEMPTS_REACHED') {
-        recordAttempt();
-        setError(t('common.maxAttemptsReached'));
-        setStatus('error');
-      } else if (similarity === 0) {
-        recordAttempt();
-        setError(t('compareFaces.noFaceDetected'));
-        setStatus('error');
-      } else {
-        recordAttempt();
+      } else if (similarity > 0) {
         setError(`${t('compareFaces.lowSimilarity')} (${similarity}%)`);
-        setStatus('error');
+        setStatus('retry_ocr'); 
+      } else {
+        setError(t('compareFaces.failed'));
+        setStatus('retry_ocr'); 
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.unknownError'));
@@ -67,25 +57,6 @@ export function CompareFacesVerification({
   useEffect(() => {
     handleCompare();
   }, []);
-
-  if (hasReachedLimit) {
-    return (
-      <div style={{
-        textAlign: 'center',
-        padding: '48px 24px',
-        minHeight: '300px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚫</div>
-        <p style={{ fontWeight: 600, color: '#0f172a', fontSize: '16px' }}>
-          {t('common.maxAttemptsReached')}
-        </p>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -142,6 +113,20 @@ export function CompareFacesVerification({
               {t('compareFaces.processing') || 'Comparing faces...'}
             </p>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        ) : status === 'max_attempts' ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '48px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚫</div>
+            <p style={{ fontWeight: 600, color: '#0f172a', fontSize: '16px' }}>
+              {t('common.maxAttemptsReached')}
+            </p>
           </div>
         ) : status === 'retry_ocr' ? (
           <div style={{ padding: '32px 24px', textAlign: 'center' }}>

@@ -89,11 +89,16 @@ export function OCRVerification({
       setBackImage(null);
     }
   } catch (err) {
-    setError(err instanceof Error ? err.message : t('common.unknownError'));
+  const message = err instanceof Error ? err.message : '';
+  if (message.includes('409')) {
+    onComplete();
+  } else {
+    setError(message || t('common.unknownError'));
     setStep('front');
     setFrontImage(null);
     setBackImage(null);
   }
+}
 };
 
 if (hasReachedLimit) {

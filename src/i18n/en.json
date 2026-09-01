@@ -60,7 +60,9 @@
     "retry": "Try Again",
     "failed": "Face comparison failed. Please try again.",
     "lowSimilarity": "Face does not match the document photo.",
-    "noFaceDetected": "No face detected in the document. Please ensure the document photo is clear and well-lit."
+    "noFaceDetected": "No face detected in the document. Please ensure the document photo is clear and well-lit.",
+    "retakeDocumentHint": "Please retake the document photo ensuring your face is clearly visible.",
+    "retakeDocument": "Retake Document Photo"
   },
   "dataVerification": {
     "title": "Data Verification",
