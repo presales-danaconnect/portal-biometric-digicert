@@ -219,6 +219,7 @@ function App() {
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
             geolocation={geolocation}
+            primaryColor={config.ui.colors.primary}
           />
         );
       default:
