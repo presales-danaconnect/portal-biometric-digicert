@@ -17,6 +17,7 @@ interface LivenessCheckProps {
   onComplete: () => void;
   geolocation?: string | null;
   primaryColor?: string;
+  wamid?: string;
 }
 
 export function LivenessCheck({
@@ -25,6 +26,7 @@ export function LivenessCheck({
   onComplete,
   geolocation,
   primaryColor,
+  wamid,
 }: LivenessCheckProps) {
   const { t, lang } = useTranslation();
   const { recordAttempt, hasReachedLimit, attemptsUsed } = useAttemptTracker(
@@ -68,7 +70,7 @@ export function LivenessCheck({
   const handleAnalysisComplete = async () => {
     if (!sessionId) return;
     try {
-      const response = await submitLivenessResult(circuitId, sessionId, geolocation);
+      const response = await submitLivenessResult(circuitId, sessionId, geolocation, wamid);
       recordAttempt();
       if (response.success) {
         onComplete();

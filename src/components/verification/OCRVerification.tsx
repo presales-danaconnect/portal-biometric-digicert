@@ -14,6 +14,7 @@ interface OCRVerificationProps {
   onComplete: () => void;
   geolocation?: string | null;
   primaryColor?: string;
+  wamid?: string;
 }
 
 type OcrStep = 'front' | 'frontPreview' | 'back' | 'backPreview' | 'processing' | 'done';
@@ -24,6 +25,7 @@ export function OCRVerification({
   onComplete,
   geolocation,
   primaryColor = '#0a1a3c',
+  wamid,
 }: OCRVerificationProps) {
   const { t } = useTranslation();
   const { recordAttempt, hasReachedLimit } = useAttemptTracker(circuitId, 'ocr', thresholds.maxAttempts);
@@ -70,7 +72,7 @@ export function OCRVerification({
         const { uploadUrl } = await getUploadUrl(circuitId, 'back');
         await uploadToS3(uploadUrl, backFile);
       }
-      const result = await processCircuit(circuitId, 'ocr', {}, geolocation || undefined);
+      const result = await processCircuit(circuitId, 'ocr', {}, geolocation || undefined, wamid);
       recordAttempt();
       const stepResult = result.stepResult as any;
       if (result.status !== 'failed' && stepResult?.success !== false) {

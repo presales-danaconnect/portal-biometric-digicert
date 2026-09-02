@@ -79,12 +79,13 @@ export async function processCircuit(
   circuitId: string,
   step: string,
   data?: object,
-  geolocation?: string
+  geolocation?: string,
+  wamid?: string
 ): Promise<StepResult> {
   const res = await fetch(`${API_URL}/api/biometric/process_circuit/${circuitId}`, {
     method: 'POST',
     headers: internalHeaders,
-    body: JSON.stringify({ step, data, geolocation }),
+    body: JSON.stringify({ step, data, geolocation, wamid }),
   });
   if (!res.ok) throw new Error(`process_circuit failed: ${res.status}`);
   return res.json();

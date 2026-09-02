@@ -28,14 +28,16 @@ export async function createLivenessSession(): Promise<{ success: boolean; sessi
 export async function submitLivenessResult(
   circuitId: string,
   sessionId: string,
-  geolocation?: string | null
+  geolocation?: string | null,
+  wamid?: string
 ): Promise<{ success: boolean; data?: LivenessResultData; error?: string }> {
   try {
     const result = await processCircuit(
       circuitId,
       'liveness',
       { sessionId },
-      geolocation || undefined
+      geolocation || undefined,
+      wamid
     );
     const stepSuccess = (result.stepResult as any)?.success === true;
     const confidence = (result.stepResult as any)?.confidence || 0;

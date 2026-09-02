@@ -31,6 +31,7 @@ function App() {
   const geolocation = useGeolocation();
   const urlParams = new URLSearchParams(window.location.search);
   const circuitId = urlParams.get('circuit');
+  const wamid = urlParams.get('wamid') || undefined;
   const [config, setConfig] = useState<CircuitConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -189,6 +190,7 @@ function App() {
             onComplete={handleStepComplete}
             geolocation={geolocation}
             primaryColor={config.ui.colors.primary}
+            wamid={wamid}
           />
         );
       case 'ocr':
@@ -199,6 +201,7 @@ function App() {
             onComplete={handleStepComplete}
             geolocation={geolocation}
             primaryColor={config.ui.colors.primary}
+            wamid={wamid}
           />
         );
       case 'compare-faces':
@@ -210,6 +213,7 @@ function App() {
             onRetry={handleStepRetry}
             geolocation={geolocation}
             primaryColor={config.ui.colors.primary}
+            wamid={wamid}
           />
         );
       case 'data-verification':
@@ -221,6 +225,7 @@ function App() {
             onRetry={handleStepRetry}
             geolocation={geolocation}
             primaryColor={config.ui.colors.primary}
+            wamid={wamid}
           />
         );
       default:

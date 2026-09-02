@@ -11,6 +11,7 @@ interface DataVerificationProps {
   onRetry?: (step: string) => void;
   geolocation?: string | null;
   primaryColor?: string;
+  wamid?: string;
 }
 
 export function DataVerification({
@@ -20,6 +21,7 @@ export function DataVerification({
   onRetry,
   geolocation,
   primaryColor = '#0f172a',
+  wamid,
 }: DataVerificationProps) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<'processing' | 'error' | 'retry_ocr' | 'max_attempts'>('processing');
@@ -29,7 +31,7 @@ export function DataVerification({
     setStatus('processing');
     setError(null);
     try {
-      const response = await processCircuit(circuitId, 'data-verification', {}, geolocation || undefined);
+      const response = await processCircuit(circuitId, 'data-verification', {}, geolocation || undefined, wamid);
       const stepResult = response.stepResult as any;
       const errorCode = stepResult?.errorCode;
 

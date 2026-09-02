@@ -12,6 +12,7 @@ interface CompareFacesVerificationProps {
   onRetry?: (step: string) => void;
   geolocation?: string | null;
   primaryColor?: string;
+  wamid?: string;
 }
 
 export function CompareFacesVerification({
@@ -20,6 +21,7 @@ export function CompareFacesVerification({
   onRetry,
   geolocation,
   primaryColor = '#0f172a',
+  wamid,
 }: CompareFacesVerificationProps) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<'idle' | 'processing' | 'error' | 'retry_ocr' | 'max_attempts'>('idle');
@@ -29,7 +31,7 @@ export function CompareFacesVerification({
     setStatus('processing');
     setError(null);
     try {
-      const result = await processCircuit(circuitId, 'compare-faces', {}, geolocation || undefined);
+      const result = await processCircuit(circuitId, 'compare-faces', {}, geolocation || undefined, wamid);
       const errorCode = (result.stepResult as any)?.errorCode;
       const similarity = (result.stepResult as any)?.similarity || 0;
 
