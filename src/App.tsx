@@ -220,7 +220,6 @@ function App() {
         return (
           <DataVerification
             circuitId={circuitId}
-            thresholds={config.thresholds}
             onComplete={handleStepComplete}
             onRetry={handleStepRetry}
             geolocation={geolocation}

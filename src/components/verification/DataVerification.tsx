@@ -4,9 +4,6 @@ import { processCircuit } from '../../services/biometricApi';
 
 interface DataVerificationProps {
   circuitId: string;
-  thresholds: {
-    maxAttempts: number;
-  };
   onComplete: () => void;
   onRetry?: (step: string) => void;
   geolocation?: string | null;
@@ -16,7 +13,6 @@ interface DataVerificationProps {
 
 export function DataVerification({
   circuitId,
-  thresholds,
   onComplete,
   onRetry,
   geolocation,
