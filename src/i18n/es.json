@@ -66,22 +66,15 @@
   },
   "dataVerification": {
     "title": "Verificación de Datos",
-    "documentGuideText": "Posiciona el frente de la cédula",
-    "documentGuideTextBack": "Posiciona el reverso de la cédula",
-    "querying": "Verificando datos...",
-    "match": "Los datos coinciden",
-    "noMatch": "Los datos no coinciden",
-    "notFound": "No se encontró registro para este documento",
-    "documentNumber": "Número de Documento",
-    "names": "Nombres",
-    "lastNames": "Apellidos",
-    "birthDate": "Fecha de Nacimiento",
-    "tryAgain": "Intentar de Nuevo",
-    "errors": {
-      "MISSING_PARAMS": "Falta información requerida. Intenta de nuevo.",
-      "IMAGE_TOO_LARGE": "La imagen es demasiado grande. Intenta de nuevo.",
-      "NOT_A_DOCUMENT": "Las imágenes no muestran un documento de identidad válido."
-    }
+    "instructions": "Verificando que los datos del documento coincidan con tu información.",
+    "processing": "Verificando datos...",
+    "ready": "Listo para verificar los datos del documento.",
+    "retry": "Intentar de nuevo",
+    "failed": "La verificación de datos falló. Por favor intenta de nuevo.",
+    "mismatch": "Los datos no coinciden",
+    "success": "Datos verificados exitosamente.",
+    "retakeHint": "Por favor retoma la foto del documento con el documento correcto.",
+    "retakeDocument": "Retomar foto del documento"
   },
   "home": {
     "title": "SDK de Verificación de Identidad",

@@ -8,18 +8,21 @@ interface DataVerificationProps {
     maxAttempts: number;
   };
   onComplete: () => void;
+  onRetry?: (step: string) => void;
   geolocation?: string | null;
   primaryColor?: string;
 }
 
 export function DataVerification({
   circuitId,
+  thresholds,
   onComplete,
+  onRetry,
   geolocation,
   primaryColor = '#0f172a',
 }: DataVerificationProps) {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<'processing' | 'error' | 'max_attempts'>('processing');
+  const [status, setStatus] = useState<'processing' | 'error' | 'retry_ocr' | 'max_attempts'>('processing');
   const [error, setError] = useState<string | null>(null);
 
   const handleVerify = async () => {
@@ -28,27 +31,29 @@ export function DataVerification({
     try {
       const response = await processCircuit(circuitId, 'data-verification', {}, geolocation || undefined);
       const stepResult = response.stepResult as any;
+      const errorCode = stepResult?.errorCode;
 
       if (response.status !== 'failed' && stepResult?.success !== false) {
         onComplete();
-      } else if (response.status === 'failed' || stepResult?.errorCode === 'MAX_ATTEMPTS_REACHED') {
+      } else if (errorCode === 'MAX_ATTEMPTS_REACHED') {
         setError(t('common.maxAttemptsReached'));
         setStatus('max_attempts');
+      } else if (errorCode === 'DATA_MISMATCH') {
+        const reason = stepResult?.reason || '';
+        setError(`${t('dataVerification.mismatch')}${reason ? `: ${reason}` : ''}`);
+        setStatus('retry_ocr');
       } else {
-        const matches = stepResult?.matches || {};
-        const failedFields = Object.entries(matches)
-          .filter(([, v]) => !v)
-          .map(([k]) => k);
-        setError(
-          failedFields.length > 0
-            ? `${t('dataVerification.mismatch') || 'Data mismatch'}: ${failedFields.join(', ')}`
-            : t('dataVerification.failed') || 'Data verification failed.'
-        );
-        setStatus('error');
+        setError(t('dataVerification.failed'));
+        setStatus('retry_ocr');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.unknownError'));
-      setStatus('error');
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('409')) {
+        onComplete();
+      } else {
+        setError(message || t('common.unknownError'));
+        setStatus('error');
+      }
     }
   };
 
@@ -125,6 +130,28 @@ export function DataVerification({
             <p style={{ fontWeight: 600, color: '#0f172a', fontSize: '16px' }}>
               {t('common.maxAttemptsReached')}
             </p>
+          </div>
+        ) : status === 'retry_ocr' ? (
+          <div style={{ padding: '32px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
+            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>
+              {t('dataVerification.retakeHint') || 'Please retake the document photo with the correct document.'}
+            </p>
+            <button
+              onClick={() => onRetry?.('ocr')}
+              style={{
+                padding: '12px 32px',
+                border: 'none',
+                borderRadius: '10px',
+                background: primaryColor,
+                color: '#fff',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              {t('dataVerification.retakeDocument') || 'Retake Document Photo'}
+            </button>
           </div>
         ) : (
           <div style={{ padding: '32px 24px', textAlign: 'center' }}>

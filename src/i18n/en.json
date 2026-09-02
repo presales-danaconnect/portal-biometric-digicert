@@ -66,22 +66,15 @@
   },
   "dataVerification": {
     "title": "Data Verification",
-    "documentGuideText": "Position DNI front side",
-    "documentGuideTextBack": "Position DNI back side",
-    "querying": "Verifying data...",
-    "match": "Data matches",
-    "noMatch": "Data does not match",
-    "notFound": "No record found for this document",
-    "documentNumber": "Document Number",
-    "names": "Names",
-    "lastNames": "Last Names",
-    "birthDate": "Birth Date",
-    "tryAgain": "Try Again",
-    "errors": {
-      "MISSING_PARAMS": "Missing required information. Please try again.",
-      "IMAGE_TOO_LARGE": "Image is too large. Please try again.",
-      "NOT_A_DOCUMENT": "The provided images do not show a valid identity document."
-    }
+    "instructions": "Verifying your document data matches your information.",
+    "processing": "Verifying data...",
+    "ready": "Ready to verify your document data.",
+    "retry": "Try Again",
+    "failed": "Data verification failed. Please try again.",
+    "mismatch": "Data mismatch",
+    "success": "Data verified successfully.",
+    "retakeHint": "Please retake the document photo with the correct document.",
+    "retakeDocument": "Retake Document Photo"
   },
   "home": {
     "title": "Identity Verification SDK",

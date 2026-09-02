@@ -218,6 +218,7 @@ function App() {
             circuitId={circuitId}
             thresholds={config.thresholds}
             onComplete={handleStepComplete}
+            onRetry={handleStepRetry}
             geolocation={geolocation}
             primaryColor={config.ui.colors.primary}
           />
