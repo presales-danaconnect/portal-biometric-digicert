@@ -45,14 +45,26 @@ export function CompareFacesVerification({
         setStatus('retry_ocr');
       } else if (similarity > 0) {
         setError(`${t('compareFaces.lowSimilarity')} (${similarity}%)`);
-        setStatus('retry_ocr'); 
+        setStatus('retry_ocr');
       } else {
         setError(t('compareFaces.failed'));
-        setStatus('retry_ocr'); 
+        setStatus('retry_ocr');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.unknownError'));
-      setStatus('error');
+      const response = (err as any)?.response;
+      const errorCode = response?.stepResult?.errorCode || response?.errorCode;
+      console.log('process_circuit error response:', JSON.stringify(response));
+  console.log('process_circuit error:', err);
+      if (errorCode === 'NO_FACE_IN_IMAGE') {
+        setError(t('compareFaces.noFaceDetected'));
+        setStatus('retry_ocr');
+      } else if (errorCode === 'MAX_ATTEMPTS_REACHED') {
+        setError(t('common.maxAttemptsReached'));
+        setStatus('max_attempts');
+      } else {
+        setError(err instanceof Error ? err.message : t('common.unknownError'));
+        setStatus('error');
+      }
     }
   };
 

@@ -87,6 +87,11 @@ export async function processCircuit(
     headers: internalHeaders,
     body: JSON.stringify({ step, data, geolocation, wamid }),
   });
-  if (!res.ok) throw new Error(`process_circuit failed: ${res.status}`);
-  return res.json();
+  const responseData = await res.json();
+  if (!res.ok) {
+    const err = new Error(`process_circuit failed: ${res.status}`);
+    (err as any).response = responseData;
+    throw err;
+  }
+  return responseData as StepResult;
 }
