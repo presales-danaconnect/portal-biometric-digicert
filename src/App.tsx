@@ -186,7 +186,6 @@ function App() {
         return (
           <LivenessCheck
             circuitId={circuitId}
-            thresholds={config.thresholds}
             onComplete={handleStepComplete}
             geolocation={geolocation}
             primaryColor={config.ui.colors.primary}

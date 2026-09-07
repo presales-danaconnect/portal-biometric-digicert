@@ -30,7 +30,7 @@ export async function submitLivenessResult(
   sessionId: string,
   geolocation?: string | null,
   wamid?: string
-): Promise<{ success: boolean; data?: LivenessResultData; error?: string }> {
+): Promise<{ success: boolean; errorCode?: string; data?: LivenessResultData; error?: string }> {
   try {
     const result = await processCircuit(
       circuitId,
@@ -41,18 +41,22 @@ export async function submitLivenessResult(
     );
     const stepSuccess = (result.stepResult as any)?.success === true;
     const confidence = (result.stepResult as any)?.confidence || 0;
+    const errorCode = (result.stepResult as any)?.errorCode;
     return {
       success: stepSuccess,
+      errorCode,
       data: {
         status: stepSuccess ? 'SUCCEEDED' : 'FAILED',
         confidence,
         referenceImage: null,
       },
     };
-  } catch (error) {
+  } catch (err) {
+    const response = (err as any)?.response;
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      errorCode: response?.stepResult?.errorCode,
+      error: err instanceof Error ? err.message : 'Unknown error',
     };
   }
 }

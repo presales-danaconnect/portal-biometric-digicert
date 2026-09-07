@@ -4,16 +4,11 @@ import { ThemeProvider } from '@aws-amplify/ui-react';
 import { createLivenessSession, submitLivenessResult } from '../../services/liveness';
 import { useTranslation } from '../../i18n/i18n';
 import { livenessDictionary } from '../../i18n/livenessDictionary';
-import { useAttemptTracker } from '../../hooks/useAttemptTracker';
 import { createTenantTheme } from '../../theme';
 import outputs from '../../../amplify_outputs.json';
 
 interface LivenessCheckProps {
   circuitId: string;
-  thresholds: {
-    livenessConfidenceThreshold: number;
-    maxAttempts: number;
-  };
   onComplete: () => void;
   geolocation?: string | null;
   primaryColor?: string;
@@ -22,21 +17,16 @@ interface LivenessCheckProps {
 
 export function LivenessCheck({
   circuitId,
-  thresholds,
   onComplete,
   geolocation,
   primaryColor,
   wamid,
 }: LivenessCheckProps) {
   const { t, lang } = useTranslation();
-  const { recordAttempt, hasReachedLimit, attemptsUsed } = useAttemptTracker(
-    circuitId,
-    'liveness',
-    thresholds.maxAttempts
-  );
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [maxAttemptsReached, setMaxAttemptsReached] = useState(false);
 
   const theme = createTenantTheme({
     primary: primaryColor || '#0f172a',
@@ -62,66 +52,56 @@ export function LivenessCheck({
   }, [t]);
 
   useEffect(() => {
-    if (!hasReachedLimit) {
-      fetchSession();
-    }
+    fetchSession();
   }, []);
 
   const handleAnalysisComplete = async () => {
     if (!sessionId) return;
     try {
       const response = await submitLivenessResult(circuitId, sessionId, geolocation, wamid);
-      recordAttempt();
       if (response.success) {
         onComplete();
       } else {
-        setError(t('liveness.failed'));
-        setSessionId(null);
-        if (attemptsUsed + 1 < thresholds.maxAttempts) {
-          setTimeout(async () => {
-            await fetchSession();
-          }, 2000);
+        const errorCode = response.errorCode;
+        if (errorCode === 'MAX_ATTEMPTS_REACHED') {
+          setError(t('common.maxAttemptsReached'));
+          setMaxAttemptsReached(true);
+          setSessionId(null);
+        } else {
+          setError(t('liveness.failed'));
+          setSessionId(null);
         }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.unknownError'));
       setSessionId(null);
-      if (attemptsUsed + 1 < thresholds.maxAttempts) {
-        await fetchSession();
-      }
+      await fetchSession();
     }
   };
 
   const handleUserCancel = () => {
     setError(t('liveness.cancelled'));
-    recordAttempt();
     setSessionId(null);
-    if (attemptsUsed + 1 < thresholds.maxAttempts) {
-      setTimeout(async () => {
-        await fetchSession();
-      }, 2000);
-    }
+    setTimeout(async () => {
+      await fetchSession();
+    }, 2000);
   };
 
   const handleError = async (err: { state: string; error?: Error }) => {
     console.warn('Liveness error:', err.state, err?.error?.message);
     const state = err?.state;
-    let shouldCountAttempt = false;
     let delay = 0;
 
     switch (state) {
       case 'FACE_DISTANCE_ERROR':
         setError(t('liveness.faceDistanceError'));
-        shouldCountAttempt = true;
         break;
       case 'MULTIPLE_FACES_ERROR':
         setError(t('liveness.multipleFacesError'));
-        shouldCountAttempt = true;
         break;
       case 'FRESHNESS_TIMEOUT':
       case 'TIMEOUT':
         setError(t('liveness.timeout'));
-        shouldCountAttempt = true;
         break;
       case 'MOBILE_LANDSCAPE_ERROR':
         setError(t('liveness.landscapeError'));
@@ -133,7 +113,6 @@ export function LivenessCheck({
         break;
       case 'CAMERA_FRAMERATE_ERROR':
         setError(t('liveness.cameraFramerateError'));
-        shouldCountAttempt = true;
         break;
       case 'SERVER_ERROR':
       case 'RUNTIME_ERROR':
@@ -142,24 +121,15 @@ export function LivenessCheck({
         break;
       default:
         setError(t('liveness.failed'));
-        shouldCountAttempt = true;
-    }
-
-    if (shouldCountAttempt) {
-      recordAttempt();
     }
 
     setSessionId(null);
-
-    const newAttemptsUsed = shouldCountAttempt ? attemptsUsed + 1 : attemptsUsed;
-    if (newAttemptsUsed < thresholds.maxAttempts) {
-      setTimeout(async () => {
-        await fetchSession();
-      }, delay);
-    }
+    setTimeout(async () => {
+      await fetchSession();
+    }, delay);
   };
 
-  if (hasReachedLimit) {
+  if (maxAttemptsReached) {
     return (
       <div style={{
         textAlign: 'center',
