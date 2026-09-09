@@ -1,4 +1,3 @@
-
 @tailwind components;
 @tailwind utilities;
 
@@ -506,6 +505,7 @@ body {
 
   .app-content {
     padding: 1.5rem 1rem;
+    justify-content: flex-start;
   }
 
   .mobile-step {
