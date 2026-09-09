@@ -496,7 +496,7 @@ body {
 }
 
 /* Responsive Adjustments */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .mobile-app {
     max-width: 100%;
     min-height: 100vh;
