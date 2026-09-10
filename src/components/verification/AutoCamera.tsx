@@ -170,7 +170,7 @@ export function AutoCamera({
         borderRadius="medium"
         overflow="hidden"
         backgroundColor="neutral.20"
-        style={{ maxHeight: '55vh' }}
+        style={{ maxHeight: '55vh', aspectRatio: '16/9' }}
       >
         <Webcam
           audio={false}
@@ -179,7 +179,8 @@ export function AutoCamera({
           videoConstraints={{
             facingMode: facingMode,
             width: { ideal: 1280 },
-            height: { ideal: 720 }
+            height: { ideal: 480 },
+            aspectRatio: 16 / 9
           }}
           style={{
             width: '100%',
