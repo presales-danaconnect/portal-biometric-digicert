@@ -191,6 +191,8 @@ export function OCRVerification({
               alt="Document"
               style={{
                 width: '100%',
+                maxHeight: '50vh',
+                objectFit: 'contain',
                 borderRadius: '10px',
                 border: '1px solid #e2e8f0',
                 marginBottom: '16px',
