@@ -170,6 +170,7 @@ export function AutoCamera({
         borderRadius="medium"
         overflow="hidden"
         backgroundColor="neutral.20"
+        style={{ maxHeight: '55vh' }}
       >
         <Webcam
           audio={false}
@@ -183,7 +184,7 @@ export function AutoCamera({
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'contain'
+            objectFit: 'cover'
           }}
         />
 
