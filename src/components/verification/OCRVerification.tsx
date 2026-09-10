@@ -189,10 +189,12 @@ export function OCRVerification({
             <img
               src={step === 'frontPreview' ? frontImage! : backImage!}
               alt="Document"
+
               style={{
                 width: '100%',
                 maxHeight: '50vh',
-                objectFit: 'contain',
+                aspectRatio: '16/9',
+                objectFit: 'cover',
                 borderRadius: '10px',
                 border: '1px solid #e2e8f0',
                 marginBottom: '16px',
