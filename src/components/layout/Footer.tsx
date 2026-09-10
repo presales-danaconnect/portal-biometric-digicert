@@ -1,5 +1,6 @@
 import React from 'react';
-import { Card, Flex, Text, Link } from '@aws-amplify/ui-react';
+import { useTranslation } from '../../i18n/i18n';
+import { Card, Flex, Link } from '@aws-amplify/ui-react';
 
 interface FooterProps {
   privacyPolicyUrl?: string;
@@ -19,6 +20,7 @@ const alignMap = {
 const Footer: React.FC<FooterProps> = ({
   privacyPolicyUrl, websiteUrl, enabled = true, backgroundColor, fontColor, align = 'center'
 }) => {
+  const { t } = useTranslation();
   if (!enabled) return null;
 
   return (
@@ -27,18 +29,15 @@ const Footer: React.FC<FooterProps> = ({
         <Flex direction="row" gap="m">
           {privacyPolicyUrl && (
             <Link href={privacyPolicyUrl} isExternal color={fontColor}>
-              Privacy Policy
+              {t('footer.privacyPolicy')}
             </Link>
           )}
           {websiteUrl && (
             <Link href={websiteUrl} isExternal color={fontColor}>
-              Website
+              {t('footer.website')}
             </Link>
           )}
         </Flex>
-        <Text fontSize="small" color={fontColor}>
-          © {new Date().getFullYear()} Identity Verification SDK
-        </Text>
       </Flex>
     </Card>
   );
